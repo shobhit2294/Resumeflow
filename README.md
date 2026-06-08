@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ResumeFlow — AI-Powered Job Tracker
 
 A full-stack MERN application for tracking job applications with an AI mock interview coach, resume analyzer, and smart reminders.
@@ -271,3 +272,6 @@ baseURL: import.meta.env.VITE_API_URL || '/api',
 ## License
 
 MIT
+=======
+# Resumeflow
+>>>>>>> 312186eaeecc9340da4962c1cf02613d04549816
