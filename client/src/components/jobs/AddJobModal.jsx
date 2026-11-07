@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Sparkles, Wand2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
@@ -15,7 +15,44 @@ const defaultForm = {
 
 export default function AddJobModal({ onClose, initialStage }) {
   const [form, setForm] = useState({ ...defaultForm, stage: initialStage || 'Applied' });
+  const [showSmartPaste, setShowSmartPaste] = useState(false);
+  const [rawText, setRawText] = useState('');
+  const [parsing, setParsing] = useState(false);
   const qc = useQueryClient();
+
+  const handleSmartExtract = async () => {
+    if (!rawText.trim() || rawText.trim().length < 20) {
+      toast.error('Please paste the job posting text or description (at least a few lines)');
+      return;
+    }
+    setParsing(true);
+    try {
+      const res = await api.post('/intel/parse-job', { rawText });
+      const d = res.data;
+      setForm((prev) => ({
+        ...prev,
+        company: d.company || prev.company,
+        role: d.role || prev.role,
+        location: d.location || prev.location,
+        remote: d.remote ?? prev.remote,
+        salaryMin: d.salaryMin ? String(d.salaryMin) : prev.salaryMin,
+        salaryMax: d.salaryMax ? String(d.salaryMax) : prev.salaryMax,
+        currency: d.currency || prev.currency,
+        source: SOURCES.includes(d.source) ? d.source : prev.source,
+        tags: Array.isArray(d.tags) ? d.tags.join(', ') : prev.tags,
+        jobDescription: d.jobDescription || prev.jobDescription,
+        contactName: d.contactName || prev.contactName,
+        contactEmail: d.contactEmail || prev.contactEmail,
+      }));
+      toast.success(`Extracted details for ${d.company || 'role'}!`);
+      setShowSmartPaste(false);
+      setRawText('');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to auto-extract job details');
+    } finally {
+      setParsing(false);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: (data) => api.post('/jobs', data),
@@ -47,11 +84,58 @@ export default function AddJobModal({ onClose, initialStage }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-fade-in">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Add new job</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-gray-900">Add new job</h2>
+            <button
+              type="button"
+              onClick={() => setShowSmartPaste(!showSmartPaste)}
+              className="text-[11px] font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 px-2.5 py-1 rounded-full flex items-center gap-1 transition-all"
+            >
+              <Sparkles size={12} />
+              {showSmartPaste ? 'Cancel Smart Paste' : 'AI Smart Fill'}
+            </button>
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={18} />
           </button>
         </div>
+
+        {/* AI Smart Paste Area */}
+        {showSmartPaste && (
+          <div className="p-4 bg-gradient-to-r from-primary-50/70 to-blue-50/70 border-b border-primary-100 space-y-2.5 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-primary-900 flex items-center gap-1.5">
+                <Wand2 size={13} className="text-primary-600" />
+                Paste Raw Job Posting or LinkedIn Snippet
+              </span>
+              <span className="text-[10px] text-gray-400">Auto-detects title, salary, location & tech stack</span>
+            </div>
+            <textarea
+              rows="4"
+              value={rawText}
+              onChange={(e) => setRawText(e.target.value)}
+              placeholder="Paste job posting text from LinkedIn, Indeed, Greenhouse, or company portal..."
+              className="input text-xs font-mono resize-none w-full bg-white"
+            />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={parsing || !rawText.trim()}
+                onClick={handleSmartExtract}
+                className="btn-primary !py-1.5 !px-3 text-xs flex items-center gap-1.5 shadow-sm"
+              >
+                {parsing ? (
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles size={13} />
+                    Auto-Fill Form
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">

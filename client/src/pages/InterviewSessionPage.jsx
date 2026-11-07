@@ -6,9 +6,10 @@ import { toast } from 'react-hot-toast';
 import api from '../utils/api';
 
 // ── Speech helpers ──────────────────────────────────────────────
-const synth = window.speechSynthesis;
+const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
 
 function speak(text, onEnd) {
+  if (!synth) return;
   synth.cancel();
   const clean = text.replace(/\[Score:.*?\]/gi, '').replace(/INTERVIEW_COMPLETE/g, '').trim();
   const utt = new SpeechSynthesisUtterance(clean);
@@ -23,7 +24,7 @@ function speak(text, onEnd) {
   synth.speak(utt);
 }
 
-function stopSpeaking() { synth.cancel(); }
+function stopSpeaking() { if (synth) synth.cancel(); }
 
 // ── Main component ───────────────────────────────────────────────
 export default function InterviewSessionPage() {
@@ -169,7 +170,7 @@ export default function InterviewSessionPage() {
         speak(aiReply.content, () => {
           setAiSpeaking(false);
           // Auto-start listening after AI finishes speaking
-          if (!res.data.interview.status === 'completed') {
+          if (res.data.interview.status !== 'completed') {
             setTimeout(() => startListening(), 500);
           }
         });

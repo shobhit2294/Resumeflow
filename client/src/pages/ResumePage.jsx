@@ -49,8 +49,8 @@ export default function ResumePage() {
     try {
       const res = await api.post('/resume/improve', { bullet: bulletInput });
       setImprovedBullet(res.data.improved);
-    } catch {
-      toast.error('Failed to improve bullet');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to improve bullet');
     } finally {
       setImprovingBullet(false);
     }
@@ -230,7 +230,9 @@ export default function ResumePage() {
       {/* Bullet improver */}
       <div className="card p-5">
         <h3 className="text-sm font-semibold text-gray-900 mb-1">Bullet point improver</h3>
-        <p className="text-xs text-gray-400 mb-4">Paste a resume bullet point and AI will make it more impactful</p>
+        <p className="text-xs text-gray-400 mb-4">
+          Paste a bullet for an evidence-preserving rewrite. Review and approve the suggestion before copying it into your resume; new metrics and claims are never added.
+        </p>
         <textarea
           className="input resize-none text-sm mb-3"
           rows={2}

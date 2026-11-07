@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search, MapPin, Briefcase, DollarSign, ExternalLink,
   BookmarkPlus, Check, Filter, X, RefreshCw, Wifi,
-  Globe, Clock, Tag, ChevronLeft, ChevronRight, Zap
+  Globe, Clock, Tag, ChevronLeft, ChevronRight, Zap, ShieldAlert
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
@@ -14,6 +14,9 @@ const SOURCE_COLORS = {
   Adzuna:    'bg-blue-100 text-blue-700',
   JSearch:   'bg-violet-100 text-violet-700',
   Arbeitnow: 'bg-amber-100 text-amber-700',
+  GitHub:    'bg-gray-200 text-gray-800',
+  Greenhouse:'bg-green-100 text-green-700',
+  Lever:     'bg-indigo-100 text-indigo-700',
 };
 
 const JOB_TYPES = ['', 'full-time', 'part-time', 'contract', 'internship', 'freelance'];
@@ -41,6 +44,7 @@ export default function JobsSearchPage() {
   const [selected, setSelected] = useState(null);  // job detail panel
   const [searchInput, setSearchInput] = useState('software engineer');
   const [showFilters, setShowFilters] = useState(false);
+  const [includeSuspicious, setIncludeSuspicious] = useState(false);
   const qc = useQueryClient();
 
   // Load already-saved jobs to mark them
@@ -61,12 +65,12 @@ export default function JobsSearchPage() {
 
   // Fetch jobs
   const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['jobs-search', query, location, remote, jobType, source, page],
+    queryKey: ['jobs-search', query, location, remote, jobType, source, page, includeSuspicious],
     queryFn: () => api.get('/jobs-search/search', {
-      params: { q: query, location, remote: remote || undefined, jobType: jobType || undefined, source: source || undefined, page },
+      params: { q: query, location, remote: remote || undefined, jobType: jobType || undefined, source: source || undefined, page, includeSuspicious },
     }).then(r => r.data),
     enabled: !!query,
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 
   // Source availability
@@ -162,7 +166,19 @@ export default function JobsSearchPage() {
               <option value="Arbeitnow">Arbeitnow</option>
               {sources?.adzuna  && <option value="Adzuna">Adzuna</option>}
               {sources?.jsearch && <option value="JSearch">JSearch</option>}
+              <option value="GitHub">GitHub community posts</option>
+              {sources?.greenhouse && <option value="Greenhouse">Greenhouse company boards</option>}
+              {sources?.lever && <option value="Lever">Lever company boards</option>}
             </select>
+            <label className="flex items-center gap-2 text-xs text-amber-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeSuspicious}
+                onChange={(event) => { setIncludeSuspicious(event.target.checked); setPage(1); }}
+                className="rounded"
+              />
+              Show high-risk listings
+            </label>
             {(remote || jobType || source) && (
               <button onClick={() => { setRemote(false); setJobType(''); setSource(''); setPage(1); }}
                 className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1">
@@ -180,6 +196,9 @@ export default function JobsSearchPage() {
             { name: 'Arbeitnow', ok: true },
             { name: 'Adzuna', ok: sources?.adzuna },
             { name: 'JSearch', ok: sources?.jsearch },
+            { name: 'GitHub', ok: sources?.github },
+            { name: 'Greenhouse', ok: sources?.greenhouse },
+            { name: 'Lever', ok: sources?.lever },
           ].map(s => (
             <span key={s.name} className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${
               s.ok ? SOURCE_COLORS[s.name] || 'bg-gray-100 text-gray-500' : 'bg-gray-100 text-gray-400 line-through'
@@ -192,6 +211,9 @@ export default function JobsSearchPage() {
               · Add API keys in <code className="bg-gray-100 px-1 rounded">.env</code> for more results
             </span>
           )}
+          <p className="text-[10px] text-gray-400 basis-full">
+            High-risk listings are hidden by default. Risk checks identify warning signs but cannot guarantee an employer is legitimate.
+          </p>
         </div>
       </div>
 
@@ -210,7 +232,13 @@ export default function JobsSearchPage() {
                   <span className="ml-2 text-gray-400">
                     (Remotive: {data.sources.remotive}, Arbeitnow: {data.sources.arbeitnow}
                     {data.sources.adzuna > 0 && `, Adzuna: ${data.sources.adzuna}`}
-                    {data.sources.jsearch > 0 && `, JSearch: ${data.sources.jsearch}`})
+                    {data.sources.jsearch > 0 && `, JSearch: ${data.sources.jsearch}`}
+                    {data.sources.github > 0 && `, GitHub: ${data.sources.github}`}
+                    {data.sources.greenhouse > 0 && `, Greenhouse: ${data.sources.greenhouse}`}
+                    {data.sources.lever > 0 && `, Lever: ${data.sources.lever}`})
+                    {data.sources.hiddenSuspicious > 0 && (
+                      <span className="text-amber-700"> · {data.sources.hiddenSuspicious} high-risk listings hidden</span>
+                    )}
                   </span>
                 )}
               </p>
@@ -303,6 +331,16 @@ export default function JobsSearchPage() {
                           <Clock size={9} /> {timeAgo(job.postedAt)}
                         </span>
                       </div>
+                      {job.trust?.riskLevel === 'medium' && (
+                        <p className="text-[10px] text-amber-700 mt-1 flex items-center gap-1">
+                          <ShieldAlert size={10} /> Verify details before applying
+                        </p>
+                      )}
+                      {job.trust?.riskLevel === 'high' && (
+                        <p className="text-[10px] text-red-700 mt-1 flex items-center gap-1">
+                          <ShieldAlert size={10} /> High-risk listing — review warning signs
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -362,6 +400,18 @@ export default function JobsSearchPage() {
               ))}
             </div>
 
+            {selected.trust?.riskLevel !== 'low' && (
+              <div className={`rounded-xl border p-3 ${selected.trust?.riskLevel === 'high' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                <p className={`text-xs font-semibold flex items-center gap-1 ${selected.trust?.riskLevel === 'high' ? 'text-red-800' : 'text-amber-800'}`}>
+                  <ShieldAlert size={13} /> {selected.trust?.riskLevel === 'high' ? 'High-risk signals found' : 'Verify this listing'}
+                </p>
+                <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                  {(selected.trust?.flags || []).map((flag, index) => <li key={index} className="text-[11px] text-gray-700">{flag}</li>)}
+                </ul>
+                <p className="text-[10px] text-gray-500 mt-2">These automated warnings are not a fraud determination. Verify the company and application URL independently; never pay to apply.</p>
+              </div>
+            )}
+
             {/* Tags/skills */}
             {selected.tags?.length > 0 && (
               <div>
@@ -389,7 +439,11 @@ export default function JobsSearchPage() {
             {/* Action buttons */}
             <div className="flex gap-2 pt-2 sticky bottom-0 bg-white pb-2">
               <button
-                onClick={() => { if (!isAlreadySaved(selected)) saveMutation.mutate(selected); }}
+                onClick={() => {
+                  if (isAlreadySaved(selected)) return;
+                  if (selected.trust?.riskLevel === 'high' && !window.confirm('This job listing has high-risk signals. Do you still want to save it?')) return;
+                  saveMutation.mutate(selected);
+                }}
                 disabled={isAlreadySaved(selected) || saveMutation.isPending}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   isAlreadySaved(selected)

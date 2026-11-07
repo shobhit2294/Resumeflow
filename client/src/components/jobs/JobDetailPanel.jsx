@@ -1,40 +1,55 @@
 import { useState } from 'react';
-import { X, ExternalLink, Trash2, Plus, Edit2, Check } from 'lucide-react';
+import {
+  X, ExternalLink, Trash2, Plus, Edit2, Check, Sparkles, Target,
+  Building2, DollarSign, HeartHandshake, Users
+} from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import { STAGES, STAGE_COLORS, formatSalary, daysAgo, getCompanyColor } from '../../utils/constants';
 import StageBadge from './StageBadge';
+import JobResumeCoach from './JobResumeCoach';
+import GhostingRadarModal from './GhostingRadarModal';
+import ProofPitchModal from './ProofPitchModal';
+import InterviewDebriefModal from './InterviewDebriefModal';
+import ReferralPathModal from './ReferralPathModal';
 
-const TABS = ['Details', 'Timeline', 'Notes', 'Interview'];
+const TABS = ['Details', 'Resume', 'Timeline', 'Notes', 'Interview'];
 
 export default function JobDetailPanel({ job, onClose }) {
   const [tab, setTab] = useState('Details');
   const [newNote, setNewNote] = useState('');
   const [stageChanging, setStageChanging] = useState(false);
+  const [showGhostingRadar, setShowGhostingRadar] = useState(false);
+  const [showProofPitch, setShowProofPitch] = useState(false);
+  const [showDebrief, setShowDebrief] = useState(false);
+  const [showReferral, setShowReferral] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
   const updateStage = useMutation({
     mutationFn: (stage) => api.patch(`/jobs/${job._id}/stage`, { stage }),
     onSuccess: () => { qc.invalidateQueries(['jobs']); toast.success('Stage updated'); },
-    onError: () => toast.error('Failed to update stage'),
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to update stage'),
   });
 
   const deleteJob = useMutation({
     mutationFn: () => api.delete(`/jobs/${job._id}`),
     onSuccess: () => { qc.invalidateQueries(['jobs']); toast.success('Job deleted'); onClose(); },
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to delete job'),
   });
 
   const addNote = useMutation({
     mutationFn: (text) => api.post(`/jobs/${job._id}/notes`, { text }),
     onSuccess: (res) => { qc.invalidateQueries(['jobs']); setNewNote(''); toast.success('Note added'); },
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to add note'),
   });
 
   const deleteNote = useMutation({
     mutationFn: (noteId) => api.delete(`/jobs/${job._id}/notes/${noteId}`),
     onSuccess: () => qc.invalidateQueries(['jobs']),
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to delete note'),
   });
 
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
@@ -108,6 +123,8 @@ export default function JobDetailPanel({ job, onClose }) {
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto p-5">
+          {tab === 'Resume' && <JobResumeCoach key={job._id} job={job} />}
+
           {tab === 'Details' && (
             <div className="space-y-3 text-sm">
               {[
@@ -153,6 +170,74 @@ export default function JobDetailPanel({ job, onClose }) {
                   ))}
                 </div>
               )}
+
+              {/* AI Copilot Tools */}
+              <div className="mt-5 pt-4 border-t border-gray-100 space-y-2.5">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  AI Career Copilot Tools
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setShowGhostingRadar(true)}
+                    className="p-2.5 text-left rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-100/70 transition-all text-xs font-semibold text-amber-900 flex flex-col gap-1 shadow-sm"
+                  >
+                    <span className="flex items-center gap-1.5 text-amber-700">
+                      <Sparkles size={13} /> Ghosting Radar
+                    </span>
+                    <span className="text-[10px] text-amber-600 font-normal">Check status & generate outreach</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowProofPitch(true)}
+                    className="p-2.5 text-left rounded-xl border border-blue-200 bg-blue-50/60 hover:bg-blue-100/70 transition-all text-xs font-semibold text-blue-900 flex flex-col gap-1 shadow-sm"
+                  >
+                    <span className="flex items-center gap-1.5 text-blue-700">
+                      <Target size={13} /> 3-Point Pitch
+                    </span>
+                    <span className="text-[10px] text-blue-600 font-normal">150-word JD proof match</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate(`/company-intel?company=${encodeURIComponent(job.company)}&role=${encodeURIComponent(job.role)}`)}
+                    className="p-2.5 text-left rounded-xl border border-purple-200 bg-purple-50/60 hover:bg-purple-100/70 transition-all text-xs font-semibold text-purple-900 flex flex-col gap-1 shadow-sm"
+                  >
+                    <span className="flex items-center gap-1.5 text-purple-700">
+                      <Building2 size={13} /> Company Dossier
+                    </span>
+                    <span className="text-[10px] text-purple-600 font-normal">Loop breakdown & teleprompter</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate(`/offer-negotiator?company=${encodeURIComponent(job.company)}&role=${encodeURIComponent(job.role)}`)}
+                    className="p-2.5 text-left rounded-xl border border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/70 transition-all text-xs font-semibold text-emerald-900 flex flex-col gap-1 shadow-sm"
+                  >
+                    <span className="flex items-center gap-1.5 text-emerald-700">
+                      <DollarSign size={13} /> Offer Negotiator
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-normal">TC math & counter script</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowReferral(true)}
+                    className="p-2.5 text-left rounded-xl border border-teal-200 bg-teal-50/60 hover:bg-teal-100/70 transition-all text-xs font-semibold text-teal-900 flex flex-col gap-1 shadow-sm"
+                  >
+                    <span className="flex items-center gap-1.5 text-teal-700">
+                      <Users size={13} /> Referral Pathmaker
+                    </span>
+                    <span className="text-[10px] text-teal-600 font-normal">Alumni & warm backchannel</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowDebrief(true)}
+                    className="p-2.5 text-left rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-100/70 transition-all text-xs font-semibold text-rose-900 flex flex-col gap-1 shadow-sm"
+                  >
+                    <span className="flex items-center gap-1.5 text-rose-700">
+                      <HeartHandshake size={13} /> Interview Debrief
+                    </span>
+                    <span className="text-[10px] text-rose-600 font-normal">Autopsy & thank-you note</span>
+                  </button>
+                </div>
+              </div>
 
               <button
                 onClick={() => navigate('/interview', { state: { jobId: job._id, company: job.company, role: job.role } })}
@@ -248,16 +333,55 @@ export default function JobDetailPanel({ job, onClose }) {
               ) : (
                 <p className="text-sm text-gray-400 mb-6">No interview sessions for this job yet.</p>
               )}
-              <button
-                onClick={() => navigate('/interview', { state: { jobId: job._id, company: job.company, role: job.role } })}
-                className="btn-primary"
-              >
-                Start new session
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => navigate('/interview', { state: { jobId: job._id, company: job.company, role: job.role } })}
+                  className="btn-primary w-full justify-center"
+                >
+                  Start new session
+                </button>
+                <button
+                  onClick={() => setShowDebrief(true)}
+                  className="btn-secondary w-full justify-center flex items-center gap-1.5 text-xs !py-2"
+                >
+                  <HeartHandshake size={14} className="text-primary-600" />
+                  Post-Interview Debrief & Thank You Drafter
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {showGhostingRadar && (
+        <GhostingRadarModal
+          job={job}
+          onClose={() => setShowGhostingRadar(false)}
+          onLogged={() => qc.invalidateQueries(['jobs'])}
+        />
+      )}
+
+      {showProofPitch && (
+        <ProofPitchModal
+          job={job}
+          onClose={() => setShowProofPitch(false)}
+        />
+      )}
+
+      {showDebrief && (
+        <InterviewDebriefModal
+          job={job}
+          onClose={() => setShowDebrief(false)}
+          onLogged={() => qc.invalidateQueries(['jobs'])}
+        />
+      )}
+
+      {showReferral && (
+        <ReferralPathModal
+          job={job}
+          onClose={() => setShowReferral(false)}
+        />
+      )}
     </div>
   );
 }

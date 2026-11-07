@@ -26,9 +26,9 @@ router.get('/overview', async (req, res, next) => {
       bySource[job.source] = (bySource[job.source] || 0) + 1;
       byPriority[job.priority] = (byPriority[job.priority] || 0) + 1;
 
-      // Response time: days from applied to first screening/interview event
+      // Response time: days from applied to first screening/interview stage change event
       const responseEvent = job.timeline.find((t) =>
-        ['Screening', 'Interview'].includes(t.event?.split(' ').pop())
+        t.type === 'stage_change' && ['Screening', 'Interview'].includes(t.stage)
       );
       if (responseEvent && job.appliedDate) {
         const days = Math.round(
@@ -143,6 +143,77 @@ router.get('/insights', async (req, res, next) => {
     }
 
     res.json({ insights });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/analytics/funnel-benchmarks — Compare against Tech Industry Conversion Standards
+router.get('/funnel-benchmarks', async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const jobs = await Job.find({ user: userId });
+    const total = jobs.length;
+
+    const appliedCount = total;
+    const screeningCount = jobs.filter((j) =>
+      ['Screening', 'Interview', 'Offer'].includes(j.stage) ||
+      j.stageHistory?.some(h => ['Screening', 'Interview', 'Offer'].includes(h.to))
+    ).length;
+    const interviewCount = jobs.filter((j) =>
+      ['Interview', 'Offer'].includes(j.stage) ||
+      j.stageHistory?.some(h => ['Interview', 'Offer'].includes(h.to))
+    ).length;
+    const offerCount = jobs.filter((j) =>
+      j.stage === 'Offer' ||
+      j.stageHistory?.some(h => h.to === 'Offer')
+    ).length;
+
+    // Actual user rates
+    const appliedToScreening = appliedCount > 0 ? Math.round((screeningCount / appliedCount) * 100) : 0;
+    const screeningToInterview = screeningCount > 0 ? Math.round((interviewCount / screeningCount) * 100) : 0;
+    const interviewToOffer = interviewCount > 0 ? Math.round((offerCount / interviewCount) * 100) : 0;
+
+    // Tech Industry Standards (Aggregated 2024-2026 tech benchmarks)
+    const benchmarks = {
+      appliedToScreening: 12,
+      screeningToInterview: 45,
+      interviewToOffer: 22,
+    };
+
+    let bottleneck = 'healthy';
+    let diagnosis = 'Healthy pipeline! Add more applications to establish deeper statistical significance.';
+    let recommendation = 'Keep momentum by tracking 5-10 tailored applications per week.';
+
+    if (total >= 4) {
+      if (appliedToScreening < benchmarks.appliedToScreening * 0.7) {
+        bottleneck = 'resume_ats';
+        diagnosis = `Top-of-funnel drop-off (${appliedToScreening}% vs ${benchmarks.appliedToScreening}% benchmark). Applications are being filtered out before reaching a recruiter.`;
+        recommendation = 'Run target roles through Evidence-Based Job Readiness and 3-Point Proof Pitch. Prioritize warm referrals using the Referral Pathmaker.';
+      } else if (screeningToInterview < benchmarks.screeningToInterview * 0.7) {
+        bottleneck = 'screening_call';
+        diagnosis = `Recruiter screen drop-off (${screeningToInterview}% vs ${benchmarks.screeningToInterview}% benchmark). Passing resume screen but dropping at the initial phone screen.`;
+        recommendation = 'Sharpen your 60-second elevator pitch hook and rehearse salary expectation questions using Company Intel Dossier.';
+      } else if (interviewToOffer < benchmarks.interviewToOffer * 0.7) {
+        bottleneck = 'technical_loop';
+        diagnosis = `Final loop conversion drop-off (${interviewToOffer}% vs ${benchmarks.interviewToOffer}% benchmark). Reaching the interview stage but getting edged out on final offers.`;
+        recommendation = 'Practice deep architectural questions with AI Mock Interview, use Meeting Mode Teleprompter for STAR stories, and send Post-Interview Debrief recovery emails.';
+      } else {
+        bottleneck = 'healthy';
+        diagnosis = 'Your conversion rates exceed industry averages at every stage of the funnel!';
+        recommendation = 'Focus on pipeline volume and use Offer Negotiator to compare total compensation across multiple offers.';
+      }
+    }
+
+    res.json({
+      total,
+      counts: { applied: appliedCount, screening: screeningCount, interview: interviewCount, offer: offerCount },
+      userRates: { appliedToScreening, screeningToInterview, interviewToOffer },
+      benchmarks,
+      bottleneck,
+      diagnosis,
+      recommendation,
+    });
   } catch (err) {
     next(err);
   }

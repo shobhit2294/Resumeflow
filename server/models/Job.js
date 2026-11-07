@@ -44,14 +44,28 @@ const jobSchema = new mongoose.Schema(
     jobDescription: { type: String, default: '' },
     source: {
       type:    String,
-      enum:    ['LinkedIn', 'Indeed', 'Company site', 'Referral', 'AngelList', 'Glassdoor', 'Remotive', 'Arbeitnow', 'Adzuna', 'JSearch', 'Other'],
+      enum:    ['LinkedIn', 'Indeed', 'Company site', 'Referral', 'AngelList', 'Glassdoor', 'Remotive', 'Arbeitnow', 'Adzuna', 'JSearch', 'GitHub', 'Greenhouse', 'Lever', 'Other'],
       default: 'LinkedIn',
+    },
+    sourceRisk: {
+      riskScore: { type: Number, min: 0, max: 100, default: 0 },
+      riskLevel: { type: String, enum: ['low', 'medium', 'high'], default: 'low' },
+      flags: [{ type: String }],
     },
     contactName:       { type: String, default: '' },
     contactEmail:      { type: String, default: '' },
     appliedDate:       { type: Date, default: Date.now },
     resumeMatchScore:  { type: Number, default: null },
-    matchedSkills:     [{ skill: String, score: Number }],
+    resumeMatchAnalysis: { type: mongoose.Schema.Types.Mixed, default: null },
+    matchedSkills:     [{
+      skill: String,
+      score: Number,
+      found: Boolean,
+      importance: String,
+      evidence: String,
+      keywordSimilarity: Number,
+      embeddingSimilarity: Number,
+    }],
     notes:             [noteSchema],
     timeline:          [timelineEventSchema],
     tags:              [{ type: String }],
@@ -66,6 +80,14 @@ const jobSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Track previous stage FIRST (must run before the timeline hook)
+jobSchema.pre('save', function (next) {
+  if (this.isModified('stage') && !this.isNew) {
+    this._previousStage = this.$locals?.previousStage || '';
+  }
+  next();
+});
 
 // ── Auto timeline on stage change ─────────────────────────────
 jobSchema.pre('save', function (next) {
@@ -87,14 +109,6 @@ jobSchema.pre('save', function (next) {
       date:    new Date(),
       addedBy: 'system',
     });
-  }
-  next();
-});
-
-// Track previous stage before save
-jobSchema.pre('save', function (next) {
-  if (this.isModified('stage') && !this.isNew) {
-    this._previousStage = this.$locals?.previousStage || '';
   }
   next();
 });

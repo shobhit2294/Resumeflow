@@ -2,21 +2,23 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, BarChart2, MessageSquare, FileText,
-  Bell, User, LogOut, Menu, X, ChevronRight, Zap, Globe, TrendingUp, Briefcase, Award,
+  Bell, User, LogOut, Menu, X, ChevronRight, Zap, Globe, TrendingUp, Briefcase, Target, Building2, DollarSign,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import { getCompanyColor } from '../../utils/constants';
 
 const navItems = [
-  { to: '/',           icon: LayoutDashboard, label: 'Pipeline',      end: true },
-  { to: '/analytics',  icon: BarChart2,       label: 'Analytics' },
-  { to: '/interview',  icon: MessageSquare,   label: 'AI Interview' },
-  { to: '/resume',     icon: FileText,        label: 'Resume AI' },
-  { to: '/reminders',  icon: Bell,            label: 'Reminders' },
-  { to: '/jobs-search', icon: Globe,           label: 'Find Jobs' },
-  { to: '/tracker',     icon: TrendingUp,     label: 'Tracker' },
-  { to: '/portal',      icon: Briefcase,      label: 'Job Portal' },
-  { to: '/certificates', icon: Award,           label: 'Certificates' },
+  { to: '/',                icon: LayoutDashboard, label: 'Pipeline',      end: true },
+  { to: '/analytics',       icon: BarChart2,       label: 'Analytics' },
+  { to: '/interview',       icon: MessageSquare,   label: 'AI Interview' },
+  { to: '/company-intel',   icon: Building2,       label: 'Company Intel' },
+  { to: '/readiness',       icon: Target,          label: 'Job Readiness' },
+  { to: '/resume',          icon: FileText,        label: 'Resume AI' },
+  { to: '/offer-negotiator',icon: DollarSign,      label: 'Offer Negotiator' },
+  { to: '/reminders',       icon: Bell,            label: 'Reminders' },
+  { to: '/jobs-search',     icon: Globe,           label: 'Find Jobs' },
+  { to: '/tracker',         icon: TrendingUp,      label: 'Tracker' },
+  { to: '/portal',          icon: Briefcase,       label: 'Job Portal' },
 ];
 
 export default function Layout() {

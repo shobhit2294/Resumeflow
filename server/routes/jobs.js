@@ -48,11 +48,58 @@ router.post('/',
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
-      const job = await Job.create({ ...req.body, user: req.user._id });
+      // Whitelist allowed fields to prevent mass-assignment
+      const {
+        company, role, stage, salaryMin, salaryMax, currency, location,
+        remote, jobUrl, jobDescription, source, contactName, contactEmail,
+        appliedDate, tags, priority, followUpDate,
+      } = req.body;
+      const job = await Job.create({
+        company, role, stage, salaryMin, salaryMax, currency, location,
+        remote, jobUrl, jobDescription, source, contactName, contactEmail,
+        appliedDate, tags, priority, followUpDate,
+        user: req.user._id,
+      });
       res.status(201).json({ job });
     } catch (err) { next(err); }
   }
 );
+
+// POST /api/jobs/bulk-import — Import multiple jobs from CSV or JSON
+router.post('/bulk-import', async (req, res, next) => {
+  try {
+    const { jobs: importedJobs } = req.body;
+    if (!Array.isArray(importedJobs) || importedJobs.length === 0) {
+      return res.status(400).json({ error: 'Please provide an array of jobs to import.' });
+    }
+
+    const validStages = ['Applied', 'Screening', 'Interview', 'Offer', 'Rejected', 'Withdrawn'];
+    const docs = importedJobs.slice(0, 100).map((item) => ({
+      company: item.company || 'Unknown Company',
+      role: item.role || item.title || 'Unknown Role',
+      stage: validStages.includes(item.stage) ? item.stage : 'Applied',
+      salaryMin: Number(item.salaryMin) || null,
+      salaryMax: Number(item.salaryMax) || null,
+      currency: item.currency || 'USD',
+      location: item.location || '',
+      remote: Boolean(item.remote),
+      jobUrl: item.jobUrl || '',
+      jobDescription: item.jobDescription || item.description || '',
+      source: item.source || 'Other',
+      contactName: item.contactName || '',
+      contactEmail: item.contactEmail || '',
+      appliedDate: item.appliedDate ? new Date(item.appliedDate) : new Date(),
+      priority: ['low', 'medium', 'high'].includes(item.priority) ? item.priority : 'medium',
+      tags: Array.isArray(item.tags) ? item.tags : (typeof item.tags === 'string' ? item.tags.split(',').map(t => t.trim()) : []),
+      user: req.user._id,
+    }));
+
+    const created = await Job.insertMany(docs);
+    res.status(201).json({ count: created.length, message: `Successfully imported ${created.length} jobs!` });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/jobs/:id
 router.get('/:id', async (req, res, next) => {
@@ -64,12 +111,23 @@ router.get('/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// PUT /api/jobs/:id
+// PUT /api/jobs/:id — whitelist fields to prevent mass-assignment
 router.put('/:id', async (req, res, next) => {
   try {
+    const {
+      company, role, stage, salaryMin, salaryMax, currency, location,
+      remote, jobUrl, jobDescription, source, contactName, contactEmail,
+      appliedDate, tags, priority, followUpDate, interviewDate, interviewType,
+      offerAmount, offerDeadline, rejectionReason,
+    } = req.body;
     const job = await Job.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
-      req.body,
+      {
+        company, role, stage, salaryMin, salaryMax, currency, location,
+        remote, jobUrl, jobDescription, source, contactName, contactEmail,
+        appliedDate, tags, priority, followUpDate, interviewDate, interviewType,
+        offerAmount, offerDeadline, rejectionReason,
+      },
       { new: true, runValidators: true }
     );
     if (!job) return res.status(404).json({ error: 'Job not found.' });
@@ -103,8 +161,8 @@ router.patch('/:id/stage', async (req, res, next) => {
       return res.status(400).json({ error: `Job is already in ${stage} stage.` });
     }
 
-    // Save previous stage for hook
-    job.$locals = { previousStage: prevStage };
+    // Save previous stage for hook — merge into $locals instead of replacing
+    Object.assign(job.$locals, { previousStage: prevStage });
     job.stage = stage;
 
     // Stage-specific fields

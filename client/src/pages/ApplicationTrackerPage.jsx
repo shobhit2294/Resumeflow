@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import api from '../utils/api';
 import { formatSalary, daysAgo, getCompanyColor, STAGE_COLORS } from '../utils/constants';
 import StageBadge from '../components/jobs/StageBadge';
+import JobResumeCoach from '../components/jobs/JobResumeCoach';
 
 // ── Stage pipeline config ─────────────────────────────────────
 const PIPELINE = [
@@ -287,6 +288,8 @@ export default function ApplicationTrackerPage() {
                 <StageBadge stage={job.stage} />
               </div>
             </div>
+
+            <JobResumeCoach key={job._id} job={job} />
 
             {/* ── Visual pipeline stepper ── */}
             <div className="card p-5">

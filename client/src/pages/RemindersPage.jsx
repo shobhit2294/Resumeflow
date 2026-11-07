@@ -56,11 +56,13 @@ export default function RemindersPage() {
   const completeMutation = useMutation({
     mutationFn: (id) => api.patch(`/reminders/${id}/complete`),
     onSuccess: () => { qc.invalidateQueries(['reminders']); toast.success('Marked complete!'); },
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to complete reminder'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/reminders/${id}`),
     onSuccess: () => { qc.invalidateQueries(['reminders']); toast.success('Deleted'); },
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to delete reminder'),
   });
 
   const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));

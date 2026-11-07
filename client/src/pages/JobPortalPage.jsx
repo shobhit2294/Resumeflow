@@ -26,8 +26,9 @@ const DIFF_COLOR = { easy: 'text-green-600 bg-green-50', medium: 'text-amber-600
 const VERDICT_COLOR = { 'Strong match': 'text-green-700 bg-green-100', 'Good match': 'text-primary-700 bg-primary-50', 'Partial match': 'text-amber-700 bg-amber-50', 'Weak match': 'text-red-600 bg-red-50' };
 
 // ── TTS ───────────────────────────────────────────────────────
-const synth = window.speechSynthesis;
+const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
 function speak(text, cb) {
+  if (!synth) return;
   synth.cancel();
   const u = new SpeechSynthesisUtterance(text.replace(/\[Score:.*?\]/gi,'').replace(/INTERVIEW_COMPLETE/g,'').trim());
   u.rate = 0.95;
@@ -52,7 +53,7 @@ export default function JobPortalPage() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['portal-jobs', q, remote, page],
     queryFn: () => api.get('/portal/jobs', { params: { q: q||undefined, remote: remote||undefined, page } }).then(r => r.data),
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 
   // ── My applications ────────────────────────────────────────
@@ -121,7 +122,7 @@ export default function JobPortalPage() {
             <p className="text-xs text-gray-500">
               <span className="font-semibold text-gray-900">{data?.total || 0}</span> jobs
             </p>
-            <button onClick={() => api.get('/portal/refresh').then(() => { qc.invalidateQueries(['portal-jobs']); toast.success('Jobs refreshed!'); })}
+            <button onClick={() => api.get('/portal/refresh').then(() => { qc.invalidateQueries(['portal-jobs']); toast.success('Jobs refreshed!'); }).catch(() => toast.error('Failed to refresh jobs'))}
               className="text-xs text-gray-400 hover:text-primary-600 flex items-center gap-1">
               <RefreshCw size={10}/> Refresh
             </button>
@@ -438,7 +439,7 @@ function MockInterviewTab({ job }) {
     const text = (textOverride || input).trim();
     if (!text || sending || done) return;
     setInput(''); setTranscript('');
-    synth.cancel(); setSending(true);
+    if (synth) synth.cancel(); setSending(true);
     setMessages(p => [...p, { role:'user', content: text, _id:'tmp'+Date.now() }]);
     try {
       const res = await api.post(`/interview/${session._id}/message`, { content: text });
@@ -451,7 +452,7 @@ function MockInterviewTab({ job }) {
       setAiSpeaking(true);
       speak(res.data.message.content, () => {
         setAiSpeaking(false);
-        if (!res.data.interview.status === 'completed') startListening();
+        if (res.data.interview.status !== 'completed') startListening();
       });
     } catch (err) { toast.error(err.response?.data?.error || 'Error'); setMessages(p => p.filter(m => !String(m._id).startsWith('tmp'))); }
     finally { setSending(false); }

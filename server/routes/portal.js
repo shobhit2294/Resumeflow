@@ -10,7 +10,7 @@ const { protect } = require('../middleware/auth');
 const router = express.Router();
 const cache  = new NodeCache({ stdTTL: 300 });
 const groq   = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const MODEL  = 'llama-3.3-70b-versatile';
+const MODEL  = 'qwen/qwen3.8-27b';
 
 async function askGroq(prompt, maxTokens = 1500) {
   const r = await groq.chat.completions.create({
@@ -323,14 +323,6 @@ router.get('/jobs/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// GET /api/portal/refresh
-router.get('/refresh', async (req, res, next) => {
-  try {
-    const count = await seedAllJobs();
-    res.json({ message: `Refreshed. ${count} jobs seeded.` });
-  } catch (err) { next(err); }
-});
-
 // GET /api/portal/mncs — list MNC companies with job counts
 router.get('/mncs', async (req, res, next) => {
   try {
@@ -355,6 +347,14 @@ router.get('/mncs', async (req, res, next) => {
 // PROTECTED ROUTES
 // ═══════════════════════════════════════════════════════════
 router.use(protect);
+
+// GET /api/portal/refresh
+router.get('/refresh', async (req, res, next) => {
+  try {
+    const count = await seedAllJobs();
+    res.json({ message: `Refreshed. ${count} jobs seeded.` });
+  } catch (err) { next(err); }
+});
 
 // POST /api/portal/jobs/:id/apply
 router.post('/jobs/:id/apply', async (req, res, next) => {
