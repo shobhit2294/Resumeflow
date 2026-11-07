@@ -1,277 +1,230 @@
-<<<<<<< HEAD
-# ResumeFlow — AI-Powered Job Tracker
+# ResumeFlow
 
-A full-stack MERN application for tracking job applications with an AI mock interview coach, resume analyzer, and smart reminders.
+ResumeFlow is a self-hosted job search tool made for people who are applying to many jobs and want a cleaner way to stay on top of everything.
 
----
+Instead of managing jobs in a messy spreadsheet, you can keep everything in one place: applications, contacts, notes, resume match results, interview prep, and follow-ups.
 
-## Features
+It is built to make the job search process less stressful and more organized.
 
-- **Kanban pipeline** — drag jobs through Applied → Screening → Interview → Offer stages
-- **List view** — sortable table view with filters
-- **AI mock interviews** — real Claude AI-powered interview sessions with scoring (1–10) per answer
-- **Resume AI scorer** — upload PDF, get skill breakdown, ATS check, keyword gap analysis
-- **Bullet point improver** — paste any resume bullet, AI rewrites it with impact metrics
-- **Analytics dashboard** — funnel chart, source breakdown, weekly trend line, AI insights
-- **Reminders** — follow-up deadlines, offer deadlines, prep tasks with overdue detection
-- **Job detail panel** — timeline, notes, resume match scores, contact info per job
-- **JWT auth** — register, login, profile, change password
+## What this app does
 
----
+ResumeFlow helps you with the full job hunt:
 
-## Tech Stack
+- Track job applications from the moment you apply to the final response
+- Save recruiter details, notes, interview dates, salary info, and follow-up status
+- See which jobs are moving forward and which ones are going cold
+- Compare your resume with a job description and check what matches
+- Identify missing skills and know what to improve before interviews
+- Practice job-specific questions and get feedback on your answers
+- Search live jobs and spot suspicious or low-quality listings
+- Prepare referral messages, interview debriefs, negotiation help, and outreach notes
 
-| Layer     | Technology                                    |
-|-----------|-----------------------------------------------|
-| Frontend  | React 18, Vite, Tailwind CSS, Zustand         |
-| Routing   | React Router v6                               |
-| Data      | TanStack Query (React Query v5)               |
-| Charts    | Recharts                                      |
-| Backend   | Node.js, Express 4                            |
-| Database  | MongoDB + Mongoose                            |
-| Auth      | JWT (jsonwebtoken) + bcryptjs                 |
-| AI        | Anthropic Claude API (`claude-sonnet-4-20250514`) |
-| File      | Multer + pdf-parse                            |
-| Security  | Helmet, express-rate-limit, express-validator |
+## Why this project exists
 
----
+A lot of people lose track of jobs because they are spread across email, LinkedIn, job boards, and random notes.
 
-## Project Structure
+Sometimes tools only help with tracking, but they do not help with resume matching or interview preparation. Other tools help with writing, but they do not manage the whole application process.
 
-```
-resumeflow/
-├── package.json              # Root — runs both server + client via concurrently
-├── server/
-│   ├── index.js              # Express app entry point
-│   ├── .env.example          # Copy to .env and fill in
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── Job.js
-│   │   ├── Interview.js
-│   │   └── Reminder.js
-│   ├── middleware/
-│   │   └── auth.js           # JWT protect middleware
-│   └── routes/
-│       ├── auth.js
-│       ├── jobs.js
-│       ├── interview.js      # Claude AI sessions
-│       ├── resume.js         # PDF upload + AI analysis
-│       ├── analytics.js
-│       └── reminders.js
-└── client/
-    ├── vite.config.js        # Proxies /api → localhost:5000
-    ├── tailwind.config.js
-    └── src/
-        ├── main.jsx
-        ├── App.jsx           # Routes + auth guards
-        ├── index.css
-        ├── utils/
-        │   ├── api.js        # Axios instance with JWT interceptor
-        │   └── constants.js  # Colors, helpers, stage config
-        ├── context/
-        │   └── authStore.js  # Zustand auth store
-        ├── components/
-        │   ├── layout/
-        │   │   └── Layout.jsx
-        │   └── jobs/
-        │       ├── JobCard.jsx
-        │       ├── JobDetailPanel.jsx
-        │       ├── AddJobModal.jsx
-        │       └── StageBadge.jsx
-        └── pages/
-            ├── LoginPage.jsx
-            ├── RegisterPage.jsx
-            ├── PipelinePage.jsx
-            ├── AnalyticsPage.jsx
-            ├── InterviewPage.jsx
-            ├── InterviewSessionPage.jsx
-            ├── ResumePage.jsx
-            ├── RemindersPage.jsx
-            └── ProfilePage.jsx
-```
+ResumeFlow tries to bring all of it together in one place so you can focus on the actual job search instead of admin work.
 
----
+## Main features
 
-## Setup Instructions
+### Job tracking
 
-### Prerequisites
+You can organize applications through stages like:
 
-- **Node.js** v18 or higher
-- **MongoDB** running locally (`mongod`) OR a MongoDB Atlas connection string
-- **Anthropic API key** — get one at https://console.anthropic.com
+- Wishlist
+- Applied
+- Screening
+- Interview
+- Offer
+- Rejected
 
----
+Each job card can hold all the important details, such as company name, role, salary, recruiter contact, notes, and timeline.
 
-### 1. Clone and install
+### Resume and job matching
 
-```bash
-# Clone the repo
-git clone https://github.com/yourname/resumeflow.git
-cd resumeflow
+The app checks your resume against a job description and shows:
 
-# Install all dependencies (root + server + client)
-npm run install-all
-```
+- what matches well
+- what is missing
+- which skills are weak or underdeveloped
+- what to work on before the interview
 
----
+This helps you apply more strategically instead of blindly sending resumes everywhere.
 
-### 2. Configure the server
+### Interview preparation
 
-```bash
-cd server
-cp .env.example .env
-```
+You can practice questions based on the actual role you are targeting.
 
-Edit `server/.env`:
+After answering, the app gives feedback on things like:
 
-```env
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/resumeflow
-JWT_SECRET=your_super_secret_key_here_make_it_long
-JWT_EXPIRES_IN=7d
-ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
-CLIENT_URL=http://localhost:5173
-NODE_ENV=development
-```
+- clarity
+- technical correctness
+- structure
+- problem-solving approach
+- relevance to the role
 
-> **MongoDB Atlas**: Replace `MONGO_URI` with your Atlas connection string:
-> `mongodb+srv://username:password@cluster.mongodb.net/resumeflow`
+This makes interview prep more realistic and more useful.
 
----
+### Follow-up and outreach
 
-### 3. Start development
+ResumeFlow also supports:
 
-From the root directory:
+- referral message drafting
+- follow-up emails
+- thank-you notes
+- interview debrief summaries
+- counter-offer and negotiation support
 
-```bash
-npm run dev
-```
+This is helpful when you want to stay proactive without sounding generic.
 
-This starts both:
-- **Server** on http://localhost:5000
-- **Client** on http://localhost:5173
+### Live job search
 
-Open http://localhost:5173 in your browser.
+The app can pull in new job listings and highlight suspicious or low-quality ones.
 
----
+This helps save time and avoid wasting effort on roles that are likely not worth pursuing.
 
-### 4. Create your account
+## Tech stack
 
-- Click **Sign up free** on the login page
-- Register with any name, email, and password (min 6 chars)
-- You're in!
+This project uses a practical modern stack that is easy to build, easy to run, and good for real-world job-search workflows.
 
----
+### Frontend
 
-## API Reference
+- React: used to build the user interface and make the app feel fast and interactive.
+- Vite: helps the frontend load quickly during development and makes the build process simple.
+- Tailwind CSS: gives a clean UI with fast styling and responsive layout without a lot of custom CSS overhead.
 
-### Auth
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/api/auth/register` | Create account |
-| POST | `/api/auth/login` | Login, returns JWT |
-| GET | `/api/auth/me` | Get current user |
-| PUT | `/api/auth/profile` | Update name, title, skills, preferences |
-| PUT | `/api/auth/change-password` | Change password |
+Why this works well: the app is a dashboard-style product with lots of forms, cards, filters, and interactive panels, so React plus Tailwind is a strong fit.
 
-### Jobs
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/api/jobs` | List all jobs (filter: stage, source, search) |
-| POST | `/api/jobs` | Create job |
-| GET | `/api/jobs/:id` | Get single job |
-| PUT | `/api/jobs/:id` | Update job |
-| PATCH | `/api/jobs/:id/stage` | Update stage only |
-| DELETE | `/api/jobs/:id` | Delete job |
-| POST | `/api/jobs/:id/notes` | Add note |
-| DELETE | `/api/jobs/:id/notes/:noteId` | Delete note |
-| POST | `/api/jobs/:id/timeline` | Add timeline event |
+### Backend
 
-### Interview
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/api/interview/start` | Start AI interview session |
-| POST | `/api/interview/:id/message` | Send answer, get AI response + score |
-| GET | `/api/interview` | List all sessions |
-| GET | `/api/interview/:id` | Get session with full chat |
-| DELETE | `/api/interview/:id` | Delete session |
+- Node.js: used for the server side because it works well with JavaScript-based apps and is quick to build with.
+- Express: handles the API routes, authentication, job logic, and data processing.
+- Socket.IO: used for real-time communication features, such as live updates and event-driven flows.
+- WebRTC: used where real-time voice or video interaction is needed, especially for interview-style features and live communication experiences.
 
-### Resume
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/api/resume/upload` | Upload PDF/TXT resume |
-| POST | `/api/resume/analyze` | AI analysis (skill scores, ATS, suggestions) |
-| POST | `/api/resume/improve` | Rewrite a bullet point |
-| GET | `/api/resume` | Resume status and score |
+Why this works well: the app needs live interactions, quick API responses, and background processing, and Node.js + Express is well suited for that.
 
-### Analytics
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/api/analytics/overview` | Full stats: funnel, rates, weekly data |
-| GET | `/api/analytics/insights` | AI-style insights |
+### Database and caching
 
-### Reminders
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET | `/api/reminders` | List reminders (filter: upcoming, completed) |
-| POST | `/api/reminders` | Create reminder |
-| PATCH | `/api/reminders/:id/complete` | Mark complete |
-| DELETE | `/api/reminders/:id` | Delete |
+- MongoDB: stores users, jobs, interviews, resumes, notes, and application data in a flexible document-based format.
+- Redis: used for OTP codes, temporary sessions, fast in-memory caching, and support for real-time events.
 
----
+Why this works well: MongoDB is flexible when data structures evolve, while Redis is fast and useful for short-lived values like verification codes and live communication state.
 
-## Production Build
+### Infrastructure and deployment
 
-```bash
-# Build the React client
-npm run build
+- Nginx: acts as a reverse proxy and helps serve the app efficiently while balancing traffic.
+- Docker and Docker Compose: make setup easier and keep the app more portable across environments.
+- JWT: used for secure authentication and protecting private routes.
 
-# The built files go to client/dist/
-# Serve them from your Node server or deploy to Vercel/Netlify
-```
+Why this works well: the system is designed to be self-hosted and easier to deploy without a lot of manual setup.
 
-To serve the built client from Express, add to `server/index.js`:
+### AI and communication support
 
-```js
-const path = require('path');
-app.use(express.static(path.join(__dirname, '../client/dist')));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-});
-```
+- Groq API: used for AI-powered features like job matching, readiness analysis, and content generation.
+- SMTP / email OTP flow: helps with secure sign-in and verification using one-time codes.
 
----
+Why this works well: the app depends on AI reasoning for resume analysis and interview support, and email-based OTP keeps the login flow simple and secure.
 
-## Deployment
+### Overall
 
-### Backend (Railway / Render / Heroku)
-1. Deploy the `server/` folder
-2. Set all `.env` variables in the dashboard
-3. Set `CLIENT_URL` to your frontend domain
+This stack is chosen to balance speed, flexibility, and usability. The frontend is interactive and easy to navigate, the backend handles real-time and AI-driven features, and the infrastructure keeps the app easy to deploy and self-host.
 
-### Frontend (Vercel / Netlify)
-1. Deploy the `client/` folder
-2. Set build command: `npm run build`
-3. Set output directory: `dist`
-4. Add env variable: `VITE_API_URL=https://your-backend.railway.app/api`
+## How to run it
 
-Then update `client/src/utils/api.js` baseURL:
-```js
-baseURL: import.meta.env.VITE_API_URL || '/api',
-```
+### Option 1: Run with Docker
 
----
+This is the easiest way to get started.
 
-## Rate Limits
+1. Make sure Docker is installed and running on your computer.
+2. Open a terminal in the project folder.
+3. Copy the environment file if it exists.
+4. Add your required values, especially your Groq API key.
+5. Start the app.
+6. Open the app in your browser at http://localhost
 
-- General API: **100 requests / 15 minutes** per IP
-- AI endpoints (interview, resume analyze): **10 requests / minute** per IP
+To stop the app later, run the shutdown command.
 
----
+### Option 2: Run locally
 
-## License
+If you want to run it directly on your machine:
 
-MIT
-=======
-# Resumeflow
->>>>>>> 312186eaeecc9340da4962c1cf02613d04549816
+1. Install dependencies.
+2. Set up the server environment variables.
+3. Start the frontend and backend from the project root.
+
+This usually runs:
+
+- Frontend at http://localhost:5173
+- Backend at http://localhost:5000
+
+## Environment variables
+
+The app needs a few environment values for database, auth, email, and AI features. Main ones include:
+
+- PORT: server port
+- NODE_ENV: development or production mode
+- MONGO_URI: MongoDB connection string
+- JWT_SECRET: secret key for user authentication
+- JWT_EXPIRES_IN: token lifetime
+- GROQ_API_KEY: API key for AI features
+- REDIS_URL: Redis connection URL
+- CLIENT_URL: allowed frontend origin
+- SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS: email settings for OTP and notifications
+
+## Project structure
+
+The repo is organized like this:
+
+- client/: frontend application
+- server/: backend API and logic
+- nginx/: reverse proxy configuration
+- docker-compose.yml: main Docker setup
+- docker-compose.dev.yml: development setup
+
+Main folders inside the app:
+
+- client/src/pages: job pages, resume pages, analytics, interviews, profile, and more
+- client/src/components: reusable UI pieces such as cards and modals
+- client/src/context: auth and app state
+- server/routes: API endpoints
+- server/models: database schemas
+- server/utils: helper logic for Redis, OTP, emails, and other services
+
+## API overview
+
+The backend includes several main areas:
+
+- auth: login, OTP verification, registration, and profile management
+- jobs: job creation, tracking, updates, notes, and bulk import
+- readiness: resume-to-job matching and readiness analysis
+- analytics: job funnel and performance metrics
+- intel: company research, interview support, outreach, and offer strategy
+- recommendations: suggested jobs and profile matching
+
+## Notes
+
+This project is meant to be useful in a real job search, not just a demo.
+
+It is designed to help you stay organized, understand your strengths and gaps, and make better decisions while applying and interviewing.
+
+It is also self-hosted, so you can run it on your own machine and keep control of your setup.
+
+A few important things to know before using it:
+
+- This app is built for job seekers who are actively applying to multiple roles and need a system that stays organized over time.
+- It is not just a resume builder or a simple tracker. It combines tracking, readiness analysis, interview preparation, and follow-up support in one workflow.
+- The app works best when you keep your resume updated, because the resume-to-job matching is based on the content you upload and the job description you compare it against.
+- Real-time features such as live updates and interview-like communication rely on services like Socket.IO and WebRTC, so they are most useful when the app is running with the correct infrastructure and environment values.
+- AI-generated suggestions are meant to support your decisions, not replace your judgment. You should still review the output and adapt it to your own experience and goals.
+- Because it is self-hosted, you are responsible for your own environment setup, secrets, and deployment configuration.
+- The project is designed to be flexible, so it can be expanded with more features, integrations, or custom workflows later.
+- If you are setting it up locally, make sure your database, Redis, and API keys are properly configured before starting the app.
+- The product is especially useful if you are applying to many companies at once and want a structured way to track progress, prepare for interviews, and compare roles.
+- The system is meant to save time, reduce confusion, and help you act more intentionally during the job search process.
+
+In simple terms: this is a full job-search management app that helps you stay organized, prep better, and make smarter decisions while applying.
+
+

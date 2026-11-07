@@ -7,6 +7,13 @@ export default function JobCard({ job, onClick }) {
   const colorClass = getCompanyColor(job.company);
   const salary = formatSalary(job.salaryMin, job.salaryMax, job.currency);
 
+  const daysSinceApplied = job.appliedDate
+    ? Math.max(0, Math.floor((Date.now() - new Date(job.appliedDate).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  const isStalled = (job.stage === 'Applied' || job.stage === 'Screening') && daysSinceApplied >= 6;
+  const isGhostRisk = isStalled && daysSinceApplied >= 12;
+
   return (
     <div
       onClick={onClick}
@@ -47,6 +54,15 @@ export default function JobCard({ job, onClick }) {
           <Calendar size={9} />
           {daysAgo(job.appliedDate)}
         </span>
+        {isGhostRisk ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200" title={`No response for ${daysSinceApplied} days`}>
+            ⚠️ Ghost Risk ({daysSinceApplied}d)
+          </span>
+        ) : isStalled ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200" title={`Ideal time to follow up (${daysSinceApplied} days)`}>
+            🕒 Follow Up ({daysSinceApplied}d)
+          </span>
+        ) : null}
       </div>
 
       {/* Resume match bar */}

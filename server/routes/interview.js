@@ -15,11 +15,11 @@ const aiLimiter = rateLimit({
 });
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY || 'dummy_key',
 });
 
 // Groq model — llama3 is fast and free on Groq
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'qwen/qwen3.8-27b';
 
 const buildSystemPrompt = (type, jobInfo) => {
   const jobContext = jobInfo
@@ -328,7 +328,8 @@ router.get('/:id', async (req, res, next) => {
 // DELETE /api/interview/:id
 router.delete('/:id', async (req, res, next) => {
   try {
-    await Interview.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const deleted = await Interview.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    if (!deleted) return res.status(404).json({ error: 'Interview not found.' });
     res.json({ message: 'Interview deleted.' });
   } catch (err) { next(err); }
 });

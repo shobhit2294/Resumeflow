@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './context/authStore';
+import { connectSocket, disconnectSocket } from './utils/socket';
 
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
@@ -13,10 +14,12 @@ import VideoInterviewPage from './pages/VideoInterviewPage';
 import JobsSearchPage from './pages/JobsSearchPage';
 import ApplicationTrackerPage from './pages/ApplicationTrackerPage';
 import JobPortalPage from './pages/JobPortalPage';
-import CertificatePage from './pages/CertificatePage';
 import ResumePage from './pages/ResumePage';
 import RemindersPage from './pages/RemindersPage';
 import ProfilePage from './pages/ProfilePage';
+import ReadinessPage from './pages/ReadinessPage';
+import CompanyIntelPage from './pages/CompanyIntelPage';
+import OfferNegotiatorPage from './pages/OfferNegotiatorPage';
 
 function PrivateRoute({ children }) {
   const { token, isLoading } = useAuthStore();
@@ -41,9 +44,19 @@ export default function App() {
   const token = useAuthStore((s) => s.token);
 
   useEffect(() => {
-    if (token) fetchMe();
-    else useAuthStore.setState({ isLoading: false });
-  }, []);
+    if (token) {
+      fetchMe();
+      // Connect socket when authenticated
+      connectSocket(token);
+    } else {
+      useAuthStore.setState({ isLoading: false });
+      disconnectSocket();
+    }
+
+    return () => {
+      // Don't disconnect on re-render — only on unmount (app close)
+    };
+  }, [token]);
 
   return (
     <BrowserRouter>
@@ -62,8 +75,10 @@ export default function App() {
           <Route path="jobs-search" element={<JobsSearchPage />} />
           <Route path="tracker" element={<ApplicationTrackerPage />} />
           <Route path="portal" element={<JobPortalPage />} />
-          <Route path="certificates" element={<CertificatePage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="readiness" element={<ReadinessPage />} />
+          <Route path="company-intel" element={<CompanyIntelPage />} />
+          <Route path="offer-negotiator" element={<OfferNegotiatorPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

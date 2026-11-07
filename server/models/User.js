@@ -11,15 +11,20 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
       unique: true,
+      sparse: true, // Allows null for phone-only users
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+    },
+    phone: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null for email-only users
+      trim: true,
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: false, // Optional — OTP-only users have no password
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
     },
@@ -53,12 +58,13 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false; // OTP-only account has no password
   return bcrypt.compare(candidatePassword, this.password);
 };
 

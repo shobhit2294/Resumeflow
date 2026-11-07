@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Filter, LayoutGrid, List } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, Search, LayoutGrid, List, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import api from '../utils/api';
-import { STAGES, STAGE_COLORS } from '../utils/constants';
+import { STAGES, STAGE_COLORS, getCompanyColor } from '../utils/constants';
 import JobCard from '../components/jobs/JobCard';
 import JobDetailPanel from '../components/jobs/JobDetailPanel';
 import AddJobModal from '../components/jobs/AddJobModal';
@@ -15,6 +16,9 @@ export default function PipelinePage() {
   const [viewMode, setViewMode] = useState('kanban');
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('');
+  const [showDataMenu, setShowDataMenu] = useState(false);
+  const fileInputRef = useRef(null);
+  const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['jobs', search, stageFilter],
@@ -22,6 +26,110 @@ export default function PipelinePage() {
   });
 
   const jobs = data?.jobs || [];
+
+  const handleExportCSV = () => {
+    if (jobs.length === 0) {
+      toast.error('No jobs to export');
+      return;
+    }
+    const headers = ['Company', 'Role', 'Stage', 'Applied Date', 'Salary Min', 'Salary Max', 'Currency', 'Location', 'Remote', 'Source', 'Priority', 'Contact Name', 'Contact Email'];
+    const rows = jobs.map((j) => [
+      `"${(j.company || '').replace(/"/g, '""')}"`,
+      `"${(j.role || '').replace(/"/g, '""')}"`,
+      `"${j.stage || 'Applied'}"`,
+      `"${j.appliedDate ? new Date(j.appliedDate).toISOString().split('T')[0] : ''}"`,
+      j.salaryMin || '',
+      j.salaryMax || '',
+      j.currency || 'USD',
+      `"${(j.location || '').replace(/"/g, '""')}"`,
+      j.remote ? 'Yes' : 'No',
+      `"${j.source || ''}"`,
+      j.priority || 'medium',
+      `"${(j.contactName || '').replace(/"/g, '""')}"`,
+      `"${(j.contactEmail || '').replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `resumeflow_pipeline_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Exported applications to CSV!');
+    setShowDataMenu(false);
+  };
+
+  const handleExportJSON = () => {
+    if (jobs.length === 0) {
+      toast.error('No jobs to export');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(jobs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `resumeflow_backup_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Exported backup to JSON!');
+    setShowDataMenu(false);
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      let imported = [];
+      if (file.name.endsWith('.json')) {
+        imported = JSON.parse(text);
+        if (!Array.isArray(imported)) {
+          toast.error('Invalid JSON format: expected an array of jobs');
+          return;
+        }
+      } else if (file.name.endsWith('.csv')) {
+        const lines = text.split('\n').filter((l) => l.trim().length > 0);
+        if (lines.length <= 1) {
+          toast.error('CSV file has no data rows');
+          return;
+        }
+        const headers = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/"/g, ''));
+        const compIdx = headers.findIndex((h) => h.includes('company'));
+        const roleIdx = headers.findIndex((h) => h.includes('role') || h.includes('title') || h.includes('position'));
+        const stageIdx = headers.findIndex((h) => h.includes('stage') || h.includes('status'));
+
+        imported = lines.slice(1).map((line) => {
+          const cells = line.split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
+          return {
+            company: compIdx !== -1 ? cells[compIdx] : cells[0] || 'Company',
+            role: roleIdx !== -1 ? cells[roleIdx] : cells[1] || 'Role',
+            stage: stageIdx !== -1 ? cells[stageIdx] : 'Applied',
+          };
+        }).filter((j) => j.company && j.role);
+      }
+
+      const res = await api.post('/jobs/bulk-import', { jobs: imported });
+      toast.success(res.data.message || 'Imported jobs successfully!');
+      qc.invalidateQueries(['jobs']);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to import file');
+    } finally {
+      setShowDataMenu(false);
+      e.target.value = '';
+    }
+  };
+
+  const stalledJobsCount = jobs.filter((j) => {
+    if (j.stage !== 'Applied' && j.stage !== 'Screening') return false;
+    const days = j.appliedDate
+      ? Math.max(0, Math.floor((Date.now() - new Date(j.appliedDate).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+    return days >= 6;
+  }).length;
 
   const jobsByStage = STAGES.reduce((acc, stage) => {
     acc[stage] = jobs.filter((j) => j.stage === stage);
@@ -82,13 +190,60 @@ export default function PipelinePage() {
           </button>
         </div>
 
+        {/* Data Import/Export Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowDataMenu(!showDataMenu)}
+            className="btn-secondary h-8 text-xs flex items-center gap-1.5"
+            title="Import or Export Pipeline Data"
+          >
+            <Download size={13} />
+            <span>Data</span>
+          </button>
+
+          {showDataMenu && (
+            <div className="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-30 animate-fade-in text-xs">
+              <button
+                onClick={handleExportCSV}
+                className="w-full text-left px-3.5 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 font-medium"
+              >
+                <FileSpreadsheet size={14} className="text-emerald-600" />
+                Export to CSV
+              </button>
+              <button
+                onClick={handleExportJSON}
+                className="w-full text-left px-3.5 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 font-medium"
+              >
+                <Download size={14} className="text-primary-600" />
+                Export to JSON Backup
+              </button>
+              <div className="border-t border-gray-100 my-1" />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full text-left px-3.5 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-700 font-medium"
+              >
+                <Upload size={14} className="text-blue-600" />
+                Import from CSV / JSON
+              </button>
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.json"
+            onChange={handleImportFile}
+            className="hidden"
+          />
+        </div>
+
         <button onClick={() => openAddModal()} className="btn-primary h-8 text-xs">
           <Plus size={14} /> Add job
         </button>
       </div>
 
       {/* Stats row */}
-      <div className="flex gap-3 px-6 py-3 bg-white border-b border-gray-100 overflow-x-auto">
+      <div className="flex gap-3 px-6 py-3 bg-white border-b border-gray-100 overflow-x-auto items-center">
         {STAGES.slice(0, 5).map((stage) => {
           const c = STAGE_COLORS[stage];
           return (
@@ -98,6 +253,12 @@ export default function PipelinePage() {
             </div>
           );
         })}
+        {stalledJobsCount > 0 && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-xs font-medium flex-shrink-0 ml-auto">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>Ghosting Radar: <strong>{stalledJobsCount}</strong> need follow-up</span>
+          </div>
+        )}
       </div>
 
       {/* Content */}

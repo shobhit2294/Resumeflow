@@ -1,0 +1,39 @@
+version: '3.9'
+
+# ── Development override — mounts source for hot-reload ─────────
+services:
+  nginx:
+    ports:
+      - "80:80"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    deploy:
+      replicas: 1                   # single instance in dev
+
+  client_builder:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    ports:
+      - "5173:5173"                 # expose Vite dev server
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=/api
+      - VITE_SOCKET_URL=http://localhost
+
+  redis:
+    ports:
+      - "6379:6379"                 # expose Redis for dev tools
+

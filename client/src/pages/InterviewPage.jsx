@@ -37,6 +37,7 @@ export default function InterviewPage() {
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/interview/${id}`),
     onSuccess: () => { qc.invalidateQueries(['interviews']); toast.success('Deleted'); },
+    onError: (err) => toast.error(err.response?.data?.error || 'Failed to delete session'),
   });
 
   const handleStart = (e) => {

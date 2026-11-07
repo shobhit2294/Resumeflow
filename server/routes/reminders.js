@@ -11,11 +11,13 @@ router.get('/', async (req, res, next) => {
     const { completed, upcoming } = req.query;
     const filter = { user: req.user._id };
 
-    if (completed === 'false') filter.completed = false;
-    if (completed === 'true') filter.completed = true;
+    // upcoming=true takes full precedence (always shows incomplete future reminders)
     if (upcoming === 'true') {
       filter.dueDate = { $gte: new Date() };
       filter.completed = false;
+    } else {
+      if (completed === 'false') filter.completed = false;
+      if (completed === 'true') filter.completed = true;
     }
 
     const reminders = await Reminder.find(filter)
@@ -71,7 +73,8 @@ router.patch('/:id/complete', async (req, res, next) => {
 // DELETE /api/reminders/:id
 router.delete('/:id', async (req, res, next) => {
   try {
-    await Reminder.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const deleted = await Reminder.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    if (!deleted) return res.status(404).json({ error: 'Reminder not found.' });
     res.json({ message: 'Reminder deleted.' });
   } catch (err) {
     next(err);

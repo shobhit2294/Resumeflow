@@ -10,8 +10,9 @@ import { toast } from 'react-hot-toast';
 import api from '../utils/api';
 
 // ── TTS helper ────────────────────────────────────────────────
-const synth = window.speechSynthesis;
+const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
 function speak(text, onEnd) {
+  if (!synth) return;
   synth.cancel();
   const clean = text.replace(/\[Score:.*?\]/gi, '').replace(/INTERVIEW_COMPLETE/g, '').trim();
   const utt = new SpeechSynthesisUtterance(clean);
@@ -22,7 +23,7 @@ function speak(text, onEnd) {
   if (onEnd) utt.onend = onEnd;
   synth.speak(utt);
 }
-function stopSpeaking() { synth.cancel(); }
+function stopSpeaking() { if (synth) synth.cancel(); }
 
 // ── Filler word detector ──────────────────────────────────────
 const FILLER_WORDS = ['um', 'uh', 'like', 'you know', 'basically', 'literally', 'actually', 'right', 'so', 'well', 'i mean'];
@@ -372,7 +373,7 @@ export default function VideoInterviewPage() {
             {interviewMeta?.job && ` — ${interviewMeta.job.role} at ${interviewMeta.job.company}`}
           </p>
           <p className="text-xs text-gray-400">
-            {interviewMeta?.questionsAsked || 0}/8 questions ·{' '}
+            {interviewMeta?.questionsAsked || 0}/{interviewMeta?.totalQuestions || 8} questions ·{' '}
             {isCompleted ? <span className="text-primary-600">Complete</span> : <span className="text-amber-600">In progress</span>}
           </p>
         </div>

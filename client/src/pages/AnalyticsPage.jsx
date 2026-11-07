@@ -3,7 +3,10 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
 } from 'recharts';
-import { TrendingUp, Target, Clock, DollarSign, Zap, AlertCircle } from 'lucide-react';
+import {
+  TrendingUp, Target, Clock, DollarSign, Zap, AlertCircle,
+  ShieldAlert, Sparkles, CheckCircle2, ArrowRight
+} from 'lucide-react';
 import api from '../utils/api';
 import { STAGE_COLORS } from '../utils/constants';
 
@@ -21,6 +24,11 @@ export default function AnalyticsPage() {
   const { data: insightsData } = useQuery({
     queryKey: ['insights'],
     queryFn: () => api.get('/analytics/insights').then((r) => r.data),
+  });
+
+  const { data: benchmarkData } = useQuery({
+    queryKey: ['funnel-benchmarks'],
+    queryFn: () => api.get('/analytics/funnel-benchmarks').then((r) => r.data),
   });
 
   if (isLoading) {
@@ -125,6 +133,118 @@ export default function AnalyticsPage() {
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Funnel Conversion Benchmark & Bottleneck Diagnostic */}
+      {benchmarkData && (
+        <div className="card p-5 border border-gray-200/90 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3 border-gray-100">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Target size={16} className="text-primary-600" />
+                Funnel Conversion Diagnostic vs. Tech Industry Benchmarks
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Pinpoint exactly where your applications are dropping off: Resume vs. Phone Screen vs. Tech Loop
+              </p>
+            </div>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
+              benchmarkData.bottleneck === 'healthy'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-amber-50 text-amber-800 border-amber-200'
+            }`}>
+              {benchmarkData.bottleneck === 'healthy' ? 'Pipeline Healthy' : 'Bottleneck Detected'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Stage 1: Applied -> Screening */}
+            <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-semibold text-gray-700">1. Applied → Screening</span>
+                <span className="text-[10px] text-gray-400">Benchmark: {benchmarkData.benchmarks?.appliedToScreening}%</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-gray-900">{benchmarkData.userRates?.appliedToScreening}%</span>
+                <span className={`text-xs font-semibold ${
+                  (benchmarkData.userRates?.appliedToScreening || 0) >= (benchmarkData.benchmarks?.appliedToScreening || 12)
+                    ? 'text-emerald-600' : 'text-rose-600'
+                }`}>
+                  {(benchmarkData.userRates?.appliedToScreening || 0) >= (benchmarkData.benchmarks?.appliedToScreening || 12) ? '✓ On Track' : '⚠️ Below Avg'}
+                </span>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary-500 rounded-full"
+                  style={{ width: `${Math.min(100, (benchmarkData.userRates?.appliedToScreening || 0) * 3)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-500">Measures resume match & ATS pass rate</p>
+            </div>
+
+            {/* Stage 2: Screening -> Interview */}
+            <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-semibold text-gray-700">2. Screening → Interview</span>
+                <span className="text-[10px] text-gray-400">Benchmark: {benchmarkData.benchmarks?.screeningToInterview}%</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-gray-900">{benchmarkData.userRates?.screeningToInterview}%</span>
+                <span className={`text-xs font-semibold ${
+                  (benchmarkData.userRates?.screeningToInterview || 0) >= (benchmarkData.benchmarks?.screeningToInterview || 45)
+                    ? 'text-emerald-600' : 'text-rose-600'
+                }`}>
+                  {(benchmarkData.userRates?.screeningToInterview || 0) >= (benchmarkData.benchmarks?.screeningToInterview || 45) ? '✓ On Track' : '⚠️ Below Avg'}
+                </span>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber-500 rounded-full"
+                  style={{ width: `${Math.min(100, (benchmarkData.userRates?.screeningToInterview || 0))}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-500">Measures recruiter call & pitch alignment</p>
+            </div>
+
+            {/* Stage 3: Interview -> Offer */}
+            <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-semibold text-gray-700">3. Interview → Offer</span>
+                <span className="text-[10px] text-gray-400">Benchmark: {benchmarkData.benchmarks?.interviewToOffer}%</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-gray-900">{benchmarkData.userRates?.interviewToOffer}%</span>
+                <span className={`text-xs font-semibold ${
+                  (benchmarkData.userRates?.interviewToOffer || 0) >= (benchmarkData.benchmarks?.interviewToOffer || 22)
+                    ? 'text-emerald-600' : 'text-rose-600'
+                }`}>
+                  {(benchmarkData.userRates?.interviewToOffer || 0) >= (benchmarkData.benchmarks?.interviewToOffer || 22) ? '✓ On Track' : '⚠️ Below Avg'}
+                </span>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 rounded-full"
+                  style={{ width: `${Math.min(100, (benchmarkData.userRates?.interviewToOffer || 0) * 2)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-500">Measures technical depth & system design</p>
+            </div>
+          </div>
+
+          {/* Actionable Diagnosis Box */}
+          <div className="p-4 bg-gradient-to-r from-primary-50/60 to-blue-50/60 border border-primary-200/80 rounded-xl text-xs space-y-1.5">
+            <div className="font-bold text-primary-950 flex items-center gap-1.5">
+              <Sparkles size={14} className="text-primary-600" />
+              Strategic Prescription:
+            </div>
+            <p className="text-primary-900 leading-relaxed font-medium">
+              {benchmarkData.diagnosis}
+            </p>
+            <p className="text-gray-700 pt-1">
+              👉 <strong>Action Plan:</strong> {benchmarkData.recommendation}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Insights */}
       {insightsData?.insights?.length > 0 && (
