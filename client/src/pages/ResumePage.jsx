@@ -168,7 +168,7 @@ export default function ResumePage() {
           <p className="text-sm font-medium text-gray-600">
             {statusData?.hasResume ? 'Replace resume' : 'Upload resume'}
           </p>
-          <p className="text-xs text-gray-400 mt-1">PDF or TXT · Max 5MB</p>
+          <p className="text-xs text-gray-400 mt-1">PDF or TXT · Max 4MB</p>
           <input
             ref={fileRef}
             type="file"
