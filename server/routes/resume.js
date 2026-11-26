@@ -16,7 +16,7 @@ const {
 
 const router = express.Router();
 router.use(protect);
-const MAX_RESUME_SIZE = 5 * 1024 * 1024;
+const MAX_RESUME_SIZE = 4 * 1024 * 1024;
 const MAX_RESUME_PDF_PAGES = 50;
 const MAX_RESUME_TEXT_LENGTH = 100000;
 
@@ -80,7 +80,7 @@ router.post('/upload', (req, res, next) => {
   upload.single('resume')(req, res, (err) => {
     if (!err) return next();
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ error: 'Resume file exceeds the 5 MB upload limit.' });
+      return res.status(413).json({ error: 'Resume file exceeds the 4 MB upload limit.' });
     }
     return res.status(400).json({ error: err.message || 'Resume upload was rejected.' });
   });
