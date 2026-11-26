@@ -363,10 +363,34 @@ router.post('/jobs/:id/apply', async (req, res, next) => {
     if (!job) return res.status(404).json({ error: 'Job not found.' });
     const already = job.applications.find(a => a.user.toString() === req.user._id.toString());
     if (already) return res.status(409).json({ error: 'Already applied.', application: already });
-    job.applications.push({ user: req.user._id });
+    const { resumeScore, resumeFeedback } = req.body;
+    job.applications.push({
+      user: req.user._id,
+      resumeScore: Number.isFinite(Number(resumeScore)) ? Number(resumeScore) : null,
+      resumeFeedback: resumeFeedback || null,
+    });
     job.applicantCount = job.applications.length;
     await job.save();
     res.status(201).json({ message: 'Application submitted!', application: job.applications.at(-1) });
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/portal/jobs/:id/application-status
+router.patch('/jobs/:id/application-status', async (req, res, next) => {
+  try {
+    const allowedStatuses = ['applied', 'screening', 'interview', 'rejected', 'offer'];
+    const { status } = req.body;
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid application status.' });
+    }
+
+    const job = await PortalJob.findOne({ _id: req.params.id, 'applications.user': req.user._id });
+    if (!job) return res.status(404).json({ error: 'Application not found.' });
+
+    const application = job.applications.find((item) => item.user.toString() === req.user._id.toString());
+    application.status = status;
+    await job.save();
+    res.json({ application });
   } catch (err) { next(err); }
 });
 

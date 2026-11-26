@@ -1,7 +1,7 @@
 {
-  "name": "resumeflow-server",
+  "name": "careerpilot-server",
   "version": "1.0.0",
-  "description": "ResumeFlow backend API",
+  "description": "CareerPilot backend API",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -9,6 +9,7 @@
     "test": "node --test"
   },
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
     "axios": "^1.7.2",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.0.0",
@@ -28,8 +29,8 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.13",
     "pdf-parse": "^1.1.1",
+    "pdfkit": "^0.21.0",
     "socket.io": "^4.7.5",
-    "@socket.io/redis-adapter": "^8.3.0",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

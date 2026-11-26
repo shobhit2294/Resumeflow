@@ -1,37 +1,62 @@
-# ResumeFlow
+# CareerPilot
 
-ResumeFlow is a self-hosted job search tool made for people who are applying to many jobs and want a cleaner way to stay on top of everything.
+CareerPilot is a self-hosted AI career assistant for managing the complete job application journey.
 
-Instead of managing jobs in a messy spreadsheet, you can keep everything in one place: applications, contacts, notes, resume match results, interview prep, and follow-ups.
+It helps a job seeker store a resume, compare it with a job description, understand missing skills, tailor a resume, apply to a job, track application progress, practise interviews, and measure improvement over time.
 
-It is built to make the job search process less stressful and more organized.
+## The complete user journey
 
-## What this app does
+The main flow is:
 
-ResumeFlow helps you with the full job hunt:
+    Register or log in
+            |
+            v
+    Add or upload your resume
+            |
+            v
+    Open a job in Job Portal
+            |
+            v
+    Compare resume with the job description
+            |
+            +-------------------------------+
+            |                               |
+            v                               v
+    Improve the resume first          Apply without changes
+            |                               |
+            v                               |
+    Review missing skills and gaps          |
+            |                               |
+            v                               |
+    Create a tailored resume                |
+            |                               |
+            v                               |
+    Save it or download it as PDF           |
+            |                               |
+            +---------------+---------------+
+                            |
+                            v
+                    Submit the application
+                            |
+                            v
+                    Track application stage
+                            |
+                            v
+                    Reach interview stage
+                            |
+                            v
+                    Practise with AI Interview
+                            |
+                            v
+                    Review analytics and improve
 
-- Track job applications from the moment you apply to the final response
-- Save recruiter details, notes, interview dates, salary info, and follow-up status
-- See which jobs are moving forward and which ones are going cold
-- Compare your resume with a job description and check what matches
-- Identify missing skills and know what to improve before interviews
-- Practice job-specific questions and get feedback on your answers
-- Search live jobs and spot suspicious or low-quality listings
-- Prepare referral messages, interview debriefs, negotiation help, and outreach notes
+This flow lets the user decide whether to improve the resume before applying. Both choices remain available.
 
-## Why this project exists
+## What CareerPilot provides
 
-A lot of people lose track of jobs because they are spread across email, LinkedIn, job boards, and random notes.
+### Application pipeline
 
-Sometimes tools only help with tracking, but they do not help with resume matching or interview preparation. Other tools help with writing, but they do not manage the whole application process.
-
-ResumeFlow tries to bring all of it together in one place so you can focus on the actual job search instead of admin work.
-
-## Main features
-
-### Job tracking
-
-You can organize applications through stages like:
+Track applications through useful stages such as:
 
 - Wishlist
 - Applied
@@ -40,191 +65,269 @@ You can organize applications through stages like:
 - Offer
 - Rejected
 
-Each job card can hold all the important details, such as company name, role, salary, recruiter contact, notes, and timeline.
+Each application can keep the company, role, job description, salary details, recruiter information, notes, dates, and current status.
 
-### Resume and job matching
+### Job Portal
 
-The app checks your resume against a job description and shows:
+Job Portal is the single place for reviewing and applying to jobs. The separate duplicate Find Jobs page has been removed so users do not have to choose between two screens with the same purpose.
 
-- what matches well
-- what is missing
-- which skills are weak or underdeveloped
-- what to work on before the interview
+Before applying, CareerPilot can compare the saved resume with the selected job description and show:
 
-This helps you apply more strategically instead of blindly sending resumes everywhere.
+- Overall match score
+- Matching skills
+- Missing skills
+- Resume evidence
+- Recommended improvements
 
-### Interview preparation
+### Resume comparison and tailoring
 
-You can practice questions based on the actual role you are targeting.
+When a job has skill gaps, the user can choose to improve the resume first.
 
-After answering, the app gives feedback on things like:
+CareerPilot creates a reviewable tailored resume draft based on the existing resume and the job description. It is designed to improve wording and relevance without inventing experience.
 
-- clarity
-- technical correctness
-- structure
-- problem-solving approach
-- relevance to the role
+The user can:
 
-This makes interview prep more realistic and more useful.
+- Edit the generated draft
+- Review changes
+- Review skills that still need to be learned or verified
+- Save the draft as the main resume
+- Download the resume as a PDF
+- Apply without changing the resume
 
-### Follow-up and outreach
+### AI interview practice
 
-ResumeFlow also supports:
+After an application reaches the interview stage, the user can practise multiple times with AI-generated questions.
 
-- referral message drafting
-- follow-up emails
-- thank-you notes
-- interview debrief summaries
-- counter-offer and negotiation support
+Each practice session can provide feedback about:
 
-This is helpful when you want to stay proactive without sounding generic.
+- Clarity
+- Structure
+- Technical correctness
+- Problem-solving approach
+- Relevance to the role
+- Communication quality
 
-### Live job search
+The user can repeat practice sessions and compare results instead of relying on one practice attempt.
 
-The app can pull in new job listings and highlight suspicious or low-quality ones.
+### Analytics and improvement tracking
 
-This helps save time and avoid wasting effort on roles that are likely not worth pursuing.
+Analytics shows how the job search is progressing and where improvement is needed.
 
-## Tech stack
+It can include:
 
-This project uses a practical modern stack that is easy to build, easy to run, and good for real-world job-search workflows.
+- Application stage breakdown
+- Application movement over time
+- Interview practice scores
+- Score improvement between sessions
+- Repeated weak areas
+- Recommended next actions
+
+The goal is to turn every application and interview attempt into useful feedback for the next attempt.
+
+### Career support tools
+
+CareerPilot also includes tools for:
+
+- Company research
+- Job readiness analysis
+- Referral and outreach messages
+- Follow-up messages
+- Interview debriefs
+- Thank-you notes
+- Offer and salary negotiation preparation
+- Reminders
+
+## Authentication
+
+CareerPilot uses normal email and password authentication.
+
+- A new user registers with name, email, password, and optional job title.
+- A returning user logs in with email and password.
+- Existing password-based accounts continue to use the same login flow.
+- OTP authentication is not part of the application.
+
+## Themes and interface
+
+The interface supports both light and dark themes.
+
+- Desktop users can change the theme from the Appearance control in the top bar.
+- Mobile users can use the theme icon in the mobile header.
+- The theme choice is saved in the browser for the next visit.
+- The interface uses simple icons and responsive layouts for desktop and mobile screens.
+
+## Technology stack
 
 ### Frontend
 
-- React: used to build the user interface and make the app feel fast and interactive.
-- Vite: helps the frontend load quickly during development and makes the build process simple.
-- Tailwind CSS: gives a clean UI with fast styling and responsive layout without a lot of custom CSS overhead.
-
-Why this works well: the app is a dashboard-style product with lots of forms, cards, filters, and interactive panels, so React plus Tailwind is a strong fit.
+- React 18 for the web interface
+- Vite for development and production builds
+- React Router for page navigation
+- Tailwind CSS for responsive styling
+- TanStack Query for server data and cache management
+- Zustand for authentication state
+- Recharts for analytics graphs
+- Lucide React for interface icons
 
 ### Backend
 
-- Node.js: used for the server side because it works well with JavaScript-based apps and is quick to build with.
-- Express: handles the API routes, authentication, job logic, and data processing.
-- Socket.IO: used for real-time communication features, such as live updates and event-driven flows.
-- WebRTC: used where real-time voice or video interaction is needed, especially for interview-style features and live communication experiences.
+- Node.js
+- Express
+- Mongoose
+- Socket.IO for real-time updates
+- JWT for protected sessions
+- bcryptjs for password hashing
+- Groq SDK for AI-powered analysis and generation
+- PDFKit for resume PDF creation
 
-Why this works well: the app needs live interactions, quick API responses, and background processing, and Node.js + Express is well suited for that.
+### Data and infrastructure
 
-### Database and caching
+- MongoDB for users, resumes, jobs, applications, interviews, and analytics data
+- Redis for caching and Socket.IO support
+- Nginx as the reverse proxy and frontend server
+- Docker Compose for the complete local deployment
 
-- MongoDB: stores users, jobs, interviews, resumes, notes, and application data in a flexible document-based format.
-- Redis: used for OTP codes, temporary sessions, fast in-memory caching, and support for real-time events.
+## System flow
 
-Why this works well: MongoDB is flexible when data structures evolve, while Redis is fast and useful for short-lived values like verification codes and live communication state.
+    Browser
+       |
+       v
+    Nginx on port 80
+       |
+       +--> React frontend files
+       |
+       +--> Node.js API servers
+                    |
+                    +--> MongoDB
+                    |
+                    +--> Redis
+                    |
+                    +--> Groq AI API when an AI feature is used
 
-### Infrastructure and deployment
-
-- Nginx: acts as a reverse proxy and helps serve the app efficiently while balancing traffic.
-- Docker and Docker Compose: make setup easier and keep the app more portable across environments.
-- JWT: used for secure authentication and protecting private routes.
-
-Why this works well: the system is designed to be self-hosted and easier to deploy without a lot of manual setup.
-
-### AI and communication support
-
-- Groq API: used for AI-powered features like job matching, readiness analysis, and content generation.
-- SMTP / email OTP flow: helps with secure sign-in and verification using one-time codes.
-
-Why this works well: the app depends on AI reasoning for resume analysis and interview support, and email-based OTP keeps the login flow simple and secure.
-
-### Overall
-
-This stack is chosen to balance speed, flexibility, and usability. The frontend is interactive and easy to navigate, the backend handles real-time and AI-driven features, and the infrastructure keeps the app easy to deploy and self-host.
-
-## How to run it
-
-### Option 1: Run with Docker
-
-This is the easiest way to get started.
-
-1. Make sure Docker is installed and running on your computer.
-2. Open a terminal in the project folder.
-3. Copy the environment file if it exists.
-4. Add your required values, especially your Groq API key.
-5. Start the app.
-6. Open the app in your browser at http://localhost
-
-To stop the app later, run the shutdown command.
-
-### Option 2: Run locally
-
-If you want to run it directly on your machine:
-
-1. Install dependencies.
-2. Set up the server environment variables.
-3. Start the frontend and backend from the project root.
-
-This usually runs:
-
-- Frontend at http://localhost:5173
-- Backend at http://localhost:5000
-
-## Environment variables
-
-The app needs a few environment values for database, auth, email, and AI features. Main ones include:
-
-- PORT: server port
-- NODE_ENV: development or production mode
-- MONGO_URI: MongoDB connection string
-- JWT_SECRET: secret key for user authentication
-- JWT_EXPIRES_IN: token lifetime
-- GROQ_API_KEY: API key for AI features
-- REDIS_URL: Redis connection URL
-- CLIENT_URL: allowed frontend origin
-- SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS: email settings for OTP and notifications
+The Docker setup runs three API server instances behind Nginx. MongoDB stores permanent application data, Redis supports fast temporary data and real-time communication, and the frontend is built into static files served by Nginx.
 
 ## Project structure
 
-The repo is organized like this:
+- client/
+  - React frontend
+  - Pages, components, authentication state, API helpers, theme styles, and analytics views
+- server/
+  - Express API
+  - Database models, routes, authentication, resume analysis, interview logic, and analytics
+- nginx/
+  - Reverse proxy configuration
+- docker-compose.yml
+  - Docker services for the frontend build, Nginx, API servers, MongoDB, and Redis
 
-- client/: frontend application
-- server/: backend API and logic
-- nginx/: reverse proxy configuration
-- docker-compose.yml: main Docker setup
-- docker-compose.dev.yml: development setup
+## Running with Docker
 
-Main folders inside the app:
+Docker is the recommended way to run CareerPilot because it starts the frontend, backend, MongoDB, Redis, and Nginx together.
 
-- client/src/pages: job pages, resume pages, analytics, interviews, profile, and more
-- client/src/components: reusable UI pieces such as cards and modals
-- client/src/context: auth and app state
-- server/routes: API endpoints
-- server/models: database schemas
-- server/utils: helper logic for Redis, OTP, emails, and other services
+### Requirements
 
-## API overview
+- Docker Desktop
+- A Groq API key for AI features
+- A JWT secret for authentication
 
-The backend includes several main areas:
+### Setup
 
-- auth: login, OTP verification, registration, and profile management
-- jobs: job creation, tracking, updates, notes, and bulk import
-- readiness: resume-to-job matching and readiness analysis
-- analytics: job funnel and performance metrics
-- intel: company research, interview support, outreach, and offer strategy
-- recommendations: suggested jobs and profile matching
+1. Open a terminal in the project folder.
+2. Create or update the environment file used by Docker.
+3. Set GROQ_API_KEY and JWT_SECRET.
+4. Start the services with the Docker Compose command.
+5. Open http://localhost in a browser.
 
-## Notes
+The main Docker command is:
 
-This project is meant to be useful in a real job search, not just a demo.
+    docker compose up -d --build
 
-It is designed to help you stay organized, understand your strengths and gaps, and make better decisions while applying and interviewing.
+To view service status:
 
-It is also self-hosted, so you can run it on your own machine and keep control of your setup.
+    docker compose ps
 
-A few important things to know before using it:
+To view service logs:
 
-- This app is built for job seekers who are actively applying to multiple roles and need a system that stays organized over time.
-- It is not just a resume builder or a simple tracker. It combines tracking, readiness analysis, interview preparation, and follow-up support in one workflow.
-- The app works best when you keep your resume updated, because the resume-to-job matching is based on the content you upload and the job description you compare it against.
-- Real-time features such as live updates and interview-like communication rely on services like Socket.IO and WebRTC, so they are most useful when the app is running with the correct infrastructure and environment values.
-- AI-generated suggestions are meant to support your decisions, not replace your judgment. You should still review the output and adapt it to your own experience and goals.
-- Because it is self-hosted, you are responsible for your own environment setup, secrets, and deployment configuration.
-- The project is designed to be flexible, so it can be expanded with more features, integrations, or custom workflows later.
-- If you are setting it up locally, make sure your database, Redis, and API keys are properly configured before starting the app.
-- The product is especially useful if you are applying to many companies at once and want a structured way to track progress, prepare for interviews, and compare roles.
-- The system is meant to save time, reduce confusion, and help you act more intentionally during the job search process.
+    docker compose logs -f
 
-In simple terms: this is a full job-search management app that helps you stay organized, prep better, and make smarter decisions while applying.
+To stop the services:
 
+    docker compose down
 
+The MongoDB and Redis data volumes are kept by Docker when the services are stopped.
+
+## Running locally without Docker
+
+Install the dependencies from the project root:
+
+    npm install
+    cd server
+    npm install
+    cd ../client
+    npm install
+
+Start the backend and frontend from the project root:
+
+    npm run dev
+
+The development addresses are normally:
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:5000
+
+When running without Docker, MongoDB and Redis must already be available and the server environment variables must be configured.
+
+## Important environment variables
+
+- PORT: API server port
+- NODE_ENV: development or production mode
+- MONGO_URI: MongoDB connection string
+- JWT_SECRET: secret used to sign login tokens
+- JWT_EXPIRES_IN: token lifetime, such as 7d
+- GROQ_API_KEY: key for AI analysis and generation
+- REDIS_URL: Redis connection URL
+- CLIENT_URL: frontend URL allowed by the API
+
+## Main API areas
+
+- Authentication: registration, login, current user, profile, and password change
+- Resume: resume content, resume-to-job comparison, tailored resume drafts, and PDF download
+- Job Portal: job listings, resume comparison before applying, applications, and application stages
+- Jobs: application cards, notes, stages, and backup import
+- Readiness: job readiness analysis and saved reports
+- Interviews: practice sessions, answers, scoring, and feedback
+- Analytics: application funnel, interview progress, improvement areas, and insights
+- Company Intel: company research, follow-ups, interview debriefs, referral messages, and negotiation support
+- Recommendations: job suggestions based on profile and skill overlap
+
+## Testing and verification
+
+The project can be checked with:
+
+    cd client
+    npm run build
+
+    cd ../server
+    npm test
+
+The Docker deployment can be checked with:
+
+    docker compose up -d --build
+    docker compose ps
+
+The API health endpoint is available at:
+
+    http://localhost/api/health
+
+## Product principles
+
+- Keep the application workflow in one clear place.
+- Show the resume and job match before the user applies.
+- Let the user decide whether to improve the resume or apply immediately.
+- Never present generated resume content as verified experience unless the user confirms it.
+- Make interview practice repeatable and measurable.
+- Use analytics to show progress and recommend the next improvement.
+- Keep authentication simple with normal password login and registration.
+- Keep the entire application runnable through Docker.
+
+## License
+
+This project is licensed under the MIT License.

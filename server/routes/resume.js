@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
+const PDFDocument = require('pdfkit');
 const Groq = require('groq-sdk');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
@@ -400,6 +401,94 @@ router.put('/content', async (req, res, next) => {
     }
 
     res.json({ message: 'Approved resume edits saved.', length: updatedText.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/resume/tailor — create a reviewable resume draft for a specific JD
+router.post('/tailor', aiLimiter, async (req, res, next) => {
+  try {
+    const { jobTitle, company, jobDescription, missingSkills = [] } = req.body;
+    if (typeof jobDescription !== 'string' || !jobDescription.trim()) {
+      return res.status(400).json({ error: 'Job description is required to tailor a resume.' });
+    }
+
+    const user = await User.findById(req.user._id).select('resumeText');
+    if (!user?.resumeText?.trim()) {
+      return res.status(400).json({ error: 'Upload your resume before creating a tailored version.' });
+    }
+
+    const prompt = `Create a job-tailored resume draft for ${jobTitle || 'this role'}${company ? ` at ${company}` : ''}.
+
+JOB DESCRIPTION:
+${jobDescription.substring(0, 12000)}
+
+SKILLS IDENTIFIED AS MISSING OR WEAK:
+${JSON.stringify(Array.isArray(missingSkills) ? missingSkills.slice(0, 25) : [])}
+
+CANDIDATE RESUME:
+${user.resumeText.substring(0, 12000)}
+
+Return ONLY valid JSON:
+{
+  "updatedResume": "complete plain-text resume draft",
+  "changes": ["specific change made"],
+  "gapsToLearn": ["skill the candidate should learn before claiming"]
+}
+
+Rules:
+- Preserve the candidate's real employers, dates, education, projects, technologies, metrics, and responsibilities.
+- Never invent experience, qualifications, certifications, projects, metrics, or employment history.
+- Improve ordering, keywords, headings, and wording only when supported by the original resume.
+- Do not add a missing skill as if the candidate already has it. Put unsupported skills in gapsToLearn instead.
+- Return a complete, clean, ATS-friendly plain-text resume with no markdown fences.`;
+
+    const result = parseAIJson(await askAI(prompt));
+    if (typeof result.updatedResume !== 'string' || !result.updatedResume.trim()) {
+      return res.status(502).json({ error: 'The tailored resume response was incomplete. Please retry.' });
+    }
+    if (result.updatedResume.length > MAX_RESUME_TEXT_LENGTH) {
+      return res.status(413).json({ error: 'The tailored resume exceeds the character limit.' });
+    }
+
+    res.json({
+      updatedResume: result.updatedResume.trim(),
+      changes: Array.isArray(result.changes) ? result.changes.slice(0, 10) : [],
+      gapsToLearn: Array.isArray(result.gapsToLearn) ? result.gapsToLearn.slice(0, 10) : [],
+      requiresApproval: true,
+    });
+  } catch (err) {
+    console.error('Resume tailoring error:', err.message);
+    next(err);
+  }
+});
+
+// POST /api/resume/pdf — download a reviewable resume draft as PDF
+router.post('/pdf', async (req, res, next) => {
+  try {
+    const { resumeText, title = 'Resume' } = req.body;
+    if (typeof resumeText !== 'string' || !resumeText.trim()) {
+      return res.status(400).json({ error: 'Resume text is required.' });
+    }
+    if (resumeText.length > MAX_RESUME_TEXT_LENGTH) {
+      return res.status(413).json({ error: 'Resume text exceeds the character limit.' });
+    }
+
+    const doc = new PDFDocument({ size: 'A4', margin: 48 });
+    const chunks = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => {
+      const safeTitle = String(title).replace(/[^a-z0-9 _-]/gi, '').trim() || 'Resume';
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${safeTitle.slice(0, 80)}.pdf"`);
+      res.send(Buffer.concat(chunks));
+    });
+    doc.font('Helvetica').fontSize(10).fillColor('#111827').text(resumeText.trim(), {
+      align: 'left',
+      lineGap: 3,
+    });
+    doc.end();
   } catch (err) {
     next(err);
   }

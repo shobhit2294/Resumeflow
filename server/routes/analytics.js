@@ -98,6 +98,40 @@ router.get('/overview', async (req, res, next) => {
   }
 });
 
+// GET /api/analytics/interview-progress
+router.get('/interview-progress', async (req, res, next) => {
+  try {
+    const interviews = await Interview.find({ user: req.user._id, status: 'completed' })
+      .sort({ completedAt: 1 })
+      .select('type averageScore completedAt behaviorReport improvements strengths');
+
+    const sessions = interviews.map((interview, index) => ({
+      session: index + 1,
+      date: interview.completedAt || interview.createdAt,
+      label: `Practice ${index + 1}`,
+      type: interview.type,
+      score: interview.averageScore,
+      behaviorScore: interview.behaviorReport?.overallBehaviorScore
+        ? Math.round((interview.behaviorReport.overallBehaviorScore / 10) * 10) / 10
+        : null,
+      improvements: interview.improvements || [],
+      strengths: interview.strengths || [],
+    }));
+
+    const scored = sessions.filter((session) => session.score != null);
+    const latest = scored.at(-1) || null;
+    const previous = scored.length > 1 ? scored.at(-2) : null;
+
+    res.json({
+      sessions,
+      latest,
+      scoreChange: latest && previous ? Math.round((latest.score - previous.score) * 10) / 10 : 0,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/analytics/insights — AI-style insights
 router.get('/insights', async (req, res, next) => {
   try {
@@ -143,6 +177,126 @@ router.get('/insights', async (req, res, next) => {
     }
 
     res.json({ insights });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/analytics/rejection-patterns
+router.get('/rejection-patterns', async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const jobs = await Job.find({ user: userId });
+
+    const rejectedJobs = jobs.filter((job) => {
+      const isRejectedStage = job.stage === 'Rejected';
+      const hasRejectionNotes = Boolean(job.rejectionReason && job.rejectionReason.trim().length > 0);
+      const hasTimelineRejection = (job.timeline || []).some((event) => event.type === 'rejection' || /reject/i.test(event.event || ''));
+      return isRejectedStage || hasRejectionNotes || hasTimelineRejection;
+    });
+
+    if (!rejectedJobs.length) {
+      return res.json({
+        totalRejected: 0,
+        summary: 'No rejection data yet. Keep applying to unlock pattern analysis.',
+        weakSkills: [],
+        roleBreakdown: [],
+        recommendations: [
+          'Apply to a few more roles so the analyzer can detect meaningful patterns.',
+          'Review your resume against the top 3 job descriptions you care about most.',
+        ],
+      });
+    }
+
+    const skillKeywords = [
+      'javascript', 'typescript', 'react', 'node', 'python', 'java', 'c#', 'go', 'rust',
+      'sql', 'mongodb', 'postgres', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'microservices',
+      'system design', 'api', 'rest', 'graphql', 'testing', 'unit testing', 'communication',
+      'leadership', 'problem solving', 'data structures', 'algorithms', 'machine learning',
+      'product sense', 'security', 'devops', 'cloud', 'frontend', 'backend'
+    ];
+
+    const skillCount = {};
+    const roleCount = {};
+    const missingSignals = [];
+    let totalMatchScore = 0;
+    let matchCount = 0;
+
+    rejectedJobs.forEach((job) => {
+      const text = `${job.role} ${job.jobDescription || ''} ${job.tags?.join(' ') || ''}`.toLowerCase();
+
+      skillKeywords.forEach((skill) => {
+        if (text.includes(skill)) {
+          skillCount[skill] = (skillCount[skill] || 0) + 1;
+        }
+      });
+
+      const normalizedRole = job.role || 'Unknown role';
+      roleCount[normalizedRole] = (roleCount[normalizedRole] || 0) + 1;
+
+      if (job.resumeMatchScore != null) {
+        totalMatchScore += Number(job.resumeMatchScore);
+        matchCount += 1;
+      }
+
+      const rejectionText = `${job.rejectionReason || ''} ${job.notes?.map((n) => n.text).join(' ') || ''}`.toLowerCase();
+      if (job.resumeMatchScore != null && job.resumeMatchScore < 60) {
+        missingSignals.push('resume fit below target');
+      }
+      if (/resume|experience|skill|qualification|match/i.test(rejectionText)) {
+        missingSignals.push('resume or experience gap');
+      }
+      if (/role|target|junior|senior|fit/i.test(rejectionText)) {
+        missingSignals.push('role targeting mismatch');
+      }
+    });
+
+    const weakSkills = Object.entries(skillCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([skill, count]) => ({ skill, count }));
+
+    const roleBreakdown = Object.entries(roleCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(([role, count]) => ({ role, count }));
+
+    const issueCount = {};
+    missingSignals.forEach((issue) => {
+      issueCount[issue] = (issueCount[issue] || 0) + 1;
+    });
+
+    const summaryParts = [];
+    if (weakSkills.length) {
+      summaryParts.push(`Your most repeated weakness is ${weakSkills[0].skill}.`);
+    }
+    if (matchCount > 0) {
+      const avgMatch = Math.round(totalMatchScore / matchCount);
+      summaryParts.push(`Your rejected roles average a resume-fit score of ${avgMatch}%.`);
+    }
+    if (roleBreakdown.length > 1) {
+      summaryParts.push(`You are targeting ${roleBreakdown[0].role} repeatedly, which may be pulling your profile into the same pattern.`);
+    }
+
+    const recommendations = [
+      'Improve the resume bullets that map to your weakest repeated skills and add measurable outcomes.',
+      'Tighten your role targeting so your applications align more closely with your strongest background.',
+      'Prioritize a few high-fit roles instead of sending large numbers of low-fit applications.',
+      'Run a readiness check on the top 3 job descriptions that keep producing rejections.'
+    ];
+
+    if (weakSkills.length) {
+      recommendations.unshift(`Focus on strengthening: ${weakSkills.slice(0, 3).map((s) => s.skill).join(', ')}.`);
+    }
+
+    res.json({
+      totalRejected: rejectedJobs.length,
+      summary: summaryParts.join(' '),
+      weakSkills,
+      roleBreakdown: roleBreakdown.slice(0, 5),
+      issueDistribution: Object.entries(issueCount).map(([label, count]) => ({ label, count })),
+      recommendations,
+      averageResumeMatch: matchCount > 0 ? Math.round(totalMatchScore / matchCount) : null,
+    });
   } catch (err) {
     next(err);
   }

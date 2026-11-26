@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: false, // Optional — OTP-only users have no password
+      required: false,
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
     },
@@ -64,7 +64,7 @@ userSchema.pre('save', async function (next) {
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  if (!this.password) return false; // OTP-only account has no password
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

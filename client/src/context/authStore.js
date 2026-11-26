@@ -8,7 +8,6 @@ const useAuthStore = create((set) => ({
 
   setUser: (user) => set({ user }),
 
-  // ─── Password-based auth (kept for backward compatibility) ────────────────
   login: async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
     localStorage.setItem('token', data.token);
@@ -23,37 +22,6 @@ const useAuthStore = create((set) => ({
     return data;
   },
 
-  // ─── Unified OTP-based auth (Email OR Phone) ──────────────────────────────
-  /**
-   * Step 1: Send OTP to email or phone number.
-   * Returns { exists: boolean, type: 'email' | 'phone', identifier: string, message: string }
-   */
-  requestOtp: async (identifier) => {
-    const { data } = await api.post('/auth/request-otp', { identifier });
-    return data;
-  },
-
-  /**
-   * Step 2a (login): Verify OTP for an existing account.
-   */
-  verifyOtpLogin: async (identifier, otp) => {
-    const { data } = await api.post('/auth/verify-otp', { identifier, otp });
-    localStorage.setItem('token', data.token);
-    set({ user: data.user, token: data.token });
-    return data;
-  },
-
-  /**
-   * Step 2b (register): Verify OTP and create a new account with email or phone.
-   */
-  registerWithOtp: async (name, identifier, otp, title) => {
-    const { data } = await api.post('/auth/register-with-otp', { name, identifier, otp, title });
-    localStorage.setItem('token', data.token);
-    set({ user: data.user, token: data.token });
-    return data;
-  },
-
-  // ─── Shared ───────────────────────────────────────────────────────────────
   logout: () => {
     localStorage.removeItem('token');
     set({ user: null, token: null });

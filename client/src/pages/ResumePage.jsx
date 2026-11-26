@@ -1,16 +1,24 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Upload, Zap, CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { Upload, Zap, Download, Save, Sparkles, CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../utils/api';
 
 export default function ResumePage() {
+  const location = useLocation();
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [selectedJob, setSelectedJob] = useState('');
   const [bulletInput, setBulletInput] = useState('');
   const [improvedBullet, setImprovedBullet] = useState('');
   const [improvingBullet, setImprovingBullet] = useState(false);
+  const [tailorContext, setTailorContext] = useState(null);
+  const [tailoredResume, setTailoredResume] = useState('');
+  const [tailorMeta, setTailorMeta] = useState(null);
+  const [tailoring, setTailoring] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [savingTailored, setSavingTailored] = useState(false);
   const fileRef = useRef();
 
   const { data: statusData, refetch: refetchStatus } = useQuery({
@@ -18,6 +26,18 @@ export default function ResumePage() {
     queryFn: () => api.get('/resume').then(r => r.data),
   });
   const { data: jobsData } = useQuery({ queryKey: ['jobs'], queryFn: () => api.get('/jobs').then(r => r.data) });
+  const { data: resumeContent, refetch: refetchContent } = useQuery({
+    queryKey: ['resume-content'],
+    queryFn: () => api.get('/resume/content').then(r => r.data),
+  });
+
+  useEffect(() => {
+    if (location.state?.jobDescription) {
+      setTailorContext(location.state);
+      setTailoredResume('');
+      setTailorMeta(null);
+    }
+  }, [location.state]);
 
   const uploadMutation = useMutation({
     mutationFn: (file) => {
@@ -53,6 +73,64 @@ export default function ResumePage() {
       toast.error(e.response?.data?.error || 'Failed to improve bullet');
     } finally {
       setImprovingBullet(false);
+    }
+  };
+
+  const handleTailorResume = async () => {
+    setTailoring(true);
+    try {
+      const res = await api.post('/resume/tailor', {
+        jobTitle: tailorContext.role,
+        company: tailorContext.company,
+        jobDescription: tailorContext.jobDescription,
+        missingSkills: tailorContext.missingSkills,
+      });
+      setTailoredResume(res.data.updatedResume);
+      setTailorMeta(res.data);
+      toast.success('Tailored resume draft created. Review it before saving or downloading.');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not tailor the resume');
+    } finally {
+      setTailoring(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!tailoredResume.trim()) return;
+    setDownloadingPdf(true);
+    try {
+      const response = await api.post('/resume/pdf', {
+        resumeText: tailoredResume,
+        title: `${tailorContext?.company || 'Resume'} - ${tailorContext?.role || 'Tailored Resume'}`,
+      }, { responseType: 'blob' });
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${(tailorContext?.company || 'resume').replace(/[^a-z0-9_-]/gi, '_')}_tailored_resume.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success('PDF download started');
+    } catch (e) {
+      toast.error('Could not create the PDF download');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleSaveTailored = async () => {
+    if (!tailoredResume.trim() || typeof resumeContent?.resumeText !== 'string') return;
+    setSavingTailored(true);
+    try {
+      await api.put('/resume/content', {
+        currentText: resumeContent.resumeText,
+        updatedText: tailoredResume,
+      });
+      await Promise.all([refetchContent(), refetchStatus()]);
+      toast.success('Tailored resume saved as your main resume');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not save the tailored resume');
+    } finally {
+      setSavingTailored(false);
     }
   };
 
@@ -107,6 +185,72 @@ export default function ResumePage() {
           </div>
         )}
       </div>
+
+      {/* JD-tailored resume card */}
+      {tailorContext && (
+        <div className="card p-5 space-y-4 border-primary-200">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <Sparkles size={15} className="text-primary-600" /> Tailor resume for {tailorContext.role}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">{tailorContext.company} · Review every change before saving or downloading.</p>
+            </div>
+            {!tailoredResume && (
+              <button onClick={handleTailorResume} disabled={tailoring || !statusData?.hasResume} className="btn-primary text-xs whitespace-nowrap">
+                {tailoring ? 'Creating draft...' : 'Create updated resume'}
+              </button>
+            )}
+          </div>
+
+          {!statusData?.hasResume && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg p-3">Upload your resume first, then return here to create the tailored version.</p>
+          )}
+
+          {tailorContext.missingSkills?.length > 0 && (
+            <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+              <p className="text-xs font-semibold text-amber-900 mb-1">Gaps identified from the JD</p>
+              <p className="text-xs text-amber-800">{tailorContext.missingSkills.join(' · ')}</p>
+            </div>
+          )}
+
+          {tailoredResume && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Updated resume draft</label>
+                <textarea className="input resize-y text-xs font-mono" rows={18} value={tailoredResume} onChange={(e) => setTailoredResume(e.target.value)} />
+              </div>
+
+              {tailorMeta?.gapsToLearn?.length > 0 && (
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                  <p className="text-xs font-semibold text-blue-900 mb-1">Skills to learn before claiming</p>
+                  {tailorMeta.gapsToLearn.map((gap, index) => <p key={index} className="text-xs text-blue-800">· {gap}</p>)}
+                </div>
+              )}
+
+              {tailorMeta?.changes?.length > 0 && (
+                <div className="text-xs text-gray-600">
+                  <p className="font-semibold text-gray-700 mb-1">Changes made</p>
+                  {tailorMeta.changes.map((change, index) => <p key={index}>· {change}</p>)}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <button onClick={handleSaveTailored} disabled={savingTailored} className="btn-primary text-xs">
+                  <Save size={13} /> {savingTailored ? 'Saving...' : 'Save as main resume'}
+                </button>
+                <button onClick={handleDownloadPdf} disabled={downloadingPdf} className="btn-secondary text-xs">
+                  <Download size={13} /> {downloadingPdf ? 'Preparing PDF...' : 'Download PDF'}
+                </button>
+                <button onClick={handleTailorResume} disabled={tailoring} className="btn-secondary text-xs">
+                  <RefreshCw size={13} /> Regenerate draft
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-400">Unsupported skills are shown as learning gaps and are never added as false experience.</p>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Analyze card */}
       {statusData?.hasResume && (

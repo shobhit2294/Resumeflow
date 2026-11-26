@@ -31,6 +31,16 @@ export default function AnalyticsPage() {
     queryFn: () => api.get('/analytics/funnel-benchmarks').then((r) => r.data),
   });
 
+  const { data: interviewProgress } = useQuery({
+    queryKey: ['interview-progress'],
+    queryFn: () => api.get('/analytics/interview-progress').then((r) => r.data),
+  });
+
+  const { data: rejectionPatternsData } = useQuery({
+    queryKey: ['rejection-patterns'],
+    queryFn: () => api.get('/analytics/rejection-patterns').then((r) => r.data),
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -242,6 +252,143 @@ export default function AnalyticsPage() {
             <p className="text-gray-700 pt-1">
               👉 <strong>Action Plan:</strong> {benchmarkData.recommendation}
             </p>
+          </div>
+        </div>
+      )}
+
+      {rejectionPatternsData && (
+        <div className="card p-5 border border-rose-200 bg-rose-50/40">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-rose-100">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <AlertCircle size={16} className="text-rose-600" />
+                Rejection Pattern Analyzer
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Detect repeated weak spots across your rejected applications
+              </p>
+            </div>
+            <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-white text-rose-700 border-rose-200">
+              {rejectionPatternsData.totalRejected || 0} rejections analyzed
+            </span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-3 rounded-xl bg-white border border-rose-100">
+              <p className="text-[11px] uppercase tracking-wide text-gray-500">Average resume fit</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">
+                {rejectionPatternsData.averageResumeMatch ?? '—'}
+                {rejectionPatternsData.averageResumeMatch != null ? '%' : ''}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-white border border-rose-100">
+              <p className="text-[11px] uppercase tracking-wide text-gray-500">Most repeated weakness</p>
+              <p className="text-base font-bold text-gray-900 mt-2">
+                {rejectionPatternsData.weakSkills?.[0]?.skill || 'No clear pattern yet'}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-white border border-rose-100">
+              <p className="text-[11px] uppercase tracking-wide text-gray-500">Most targeted role</p>
+              <p className="text-base font-bold text-gray-900 mt-2">
+                {rejectionPatternsData.roleBreakdown?.[0]?.role || 'Not enough data'}
+              </p>
+            </div>
+          </div>
+
+          {rejectionPatternsData.summary && (
+            <div className="mt-4 p-3 bg-white border border-rose-100 rounded-xl text-sm text-gray-700">
+              {rejectionPatternsData.summary}
+            </div>
+          )}
+
+          <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="p-3 bg-white border border-rose-100 rounded-xl">
+              <p className="text-sm font-semibold text-gray-900 mb-2">Weak skills</p>
+              <div className="space-y-2">
+                {(rejectionPatternsData.weakSkills || []).length > 0 ? (
+                  rejectionPatternsData.weakSkills.map((item) => (
+                    <div key={item.skill} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-gray-600">
+                        <span className="capitalize">{item.skill}</span>
+                        <span>{item.count}x</span>
+                      </div>
+                      <div className="h-1.5 bg-rose-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-rose-500 rounded-full"
+                          style={{ width: `${Math.min(100, (item.count / Math.max(rejectionPatternsData.totalRejected, 1)) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500">No repeated weaknesses found yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="p-3 bg-white border border-rose-100 rounded-xl">
+              <p className="text-sm font-semibold text-gray-900 mb-2">Role repetition</p>
+              <div className="space-y-2">
+                {(rejectionPatternsData.roleBreakdown || []).length > 0 ? (
+                  rejectionPatternsData.roleBreakdown.map((item) => (
+                    <div key={item.role} className="flex items-center justify-between text-xs text-gray-700">
+                      <span>{item.role}</span>
+                      <span className="font-semibold">{item.count}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500">No repeated role pattern yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {rejectionPatternsData.recommendations?.length > 0 && (
+            <div className="mt-4 p-3 bg-white border border-rose-100 rounded-xl">
+              <p className="text-sm font-semibold text-gray-900 mb-2">Improvement plan</p>
+              <ul className="space-y-2 text-sm text-gray-700 list-disc pl-5">
+                {rejectionPatternsData.recommendations.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Interview practice progress */}
+      {interviewProgress?.sessions?.length > 0 && (
+        <div className="card p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Interview practice progress</h3>
+              <p className="text-xs text-gray-400 mt-0.5">See how repeated AI practice is changing your performance.</p>
+            </div>
+            {interviewProgress.latest && (
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${interviewProgress.scoreChange >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {interviewProgress.scoreChange >= 0 ? '+' : ''}{interviewProgress.scoreChange}/10 since last practice
+              </span>
+            )}
+          </div>
+          <ResponsiveContainer width="100%" height={190}>
+            <LineChart data={interviewProgress.sessions}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+              <YAxis domain={[0, 10]} tick={{ fontSize: 10 }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+              <Line type="monotone" dataKey="score" name="Interview score" stroke="#7C3AED" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+              <Line type="monotone" dataKey="behaviorScore" name="Behavior score" stroke="#0D9488" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+            </LineChart>
+          </ResponsiveContainer>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {(interviewProgress.latest?.improvements || []).slice(0, 4).map((item, index) => (
+              <div key={index} className="flex gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
+                <ArrowRight size={13} className="mt-0.5 flex-shrink-0" />
+                <span>{item}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

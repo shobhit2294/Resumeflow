@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, BarChart2, MessageSquare, FileText,
-  Bell, User, LogOut, Menu, X, ChevronRight, Zap, Globe, TrendingUp, Briefcase, Target, Building2, DollarSign,
+  Bell, User, LogOut, Menu, X, ChevronRight, Zap, TrendingUp, Briefcase, Target, Building2, DollarSign, Sun, Moon,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import { getCompanyColor } from '../../utils/constants';
@@ -16,13 +16,13 @@ const navItems = [
   { to: '/resume',          icon: FileText,        label: 'Resume AI' },
   { to: '/offer-negotiator',icon: DollarSign,      label: 'Offer Negotiator' },
   { to: '/reminders',       icon: Bell,            label: 'Reminders' },
-  { to: '/jobs-search',     icon: Globe,           label: 'Find Jobs' },
   { to: '/tracker',         icon: TrendingUp,      label: 'Tracker' },
   { to: '/portal',          icon: Briefcase,       label: 'Job Portal' },
 ];
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -39,6 +39,13 @@ export default function Layout() {
     .slice(0, 2) || 'U';
 
   const avatarColor = getCompanyColor(user?.name || '');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  const toggleTheme = () => setDarkMode((enabled) => !enabled);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -64,7 +71,7 @@ export default function Layout() {
             <div className="w-7 h-7 bg-primary-400 rounded-lg flex items-center justify-center">
               <Zap size={14} className="text-white" />
             </div>
-            <span className="font-semibold text-gray-900 tracking-tight">ResumeFlow</span>
+            <span className="font-semibold text-gray-900 tracking-tight">CareerPilot</span>
           </div>
           <p className="text-xs text-gray-400 mt-1 ml-9">AI Job Tracker</p>
         </div>
@@ -141,11 +148,32 @@ export default function Layout() {
           <button onClick={() => setSidebarOpen(true)} className="text-gray-600">
             <Menu size={20} />
           </button>
-          <span className="font-semibold text-gray-900">ResumeFlow</span>
+          <span className="font-semibold text-gray-900">CareerPilot</span>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={darkMode ? 'Switch to light theme' : 'Switch to dark theme'}
+            aria-label={darkMode ? 'Switch to light theme' : 'Switch to dark theme'}
+            className="ml-auto p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+          >
+            {darkMode ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
         </div>
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
+          <div className="hidden lg:flex items-center justify-end gap-2 px-6 py-2.5 bg-white border-b border-gray-100">
+            <span className="text-xs text-gray-400">Appearance</span>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={darkMode ? 'Switch to light theme' : 'Switch to dark theme'}
+              aria-label={darkMode ? 'Switch to light theme' : 'Switch to dark theme'}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-600 hover:text-primary-700 hover:border-primary-200 transition-all"
+            >
+              {darkMode ? <><Moon size={14} /> Dark</> : <><Sun size={14} /> Light</>}
+            </button>
+          </div>
           <Outlet />
         </main>
       </div>

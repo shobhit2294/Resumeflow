@@ -11,7 +11,6 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import InterviewPage from './pages/InterviewPage';
 import InterviewSessionPage from './pages/InterviewSessionPage';
 import VideoInterviewPage from './pages/VideoInterviewPage';
-import JobsSearchPage from './pages/JobsSearchPage';
 import ApplicationTrackerPage from './pages/ApplicationTrackerPage';
 import JobPortalPage from './pages/JobPortalPage';
 import ResumePage from './pages/ResumePage';
@@ -72,7 +71,6 @@ export default function App() {
           <Route path="interview/:id/video" element={<VideoInterviewPage />} />
           <Route path="resume" element={<ResumePage />} />
           <Route path="reminders" element={<RemindersPage />} />
-          <Route path="jobs-search" element={<JobsSearchPage />} />
           <Route path="tracker" element={<ApplicationTrackerPage />} />
           <Route path="portal" element={<JobPortalPage />} />
           <Route path="profile" element={<ProfilePage />} />

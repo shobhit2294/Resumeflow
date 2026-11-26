@@ -21,4 +21,4 @@ FROM alpine:3.19
 WORKDIR /app
 COPY --from=builder /app/dist /app/dist
 
-CMD ["sh", "-c", "cp -rf /app/dist/. /app/dist_out/ && echo 'Client build successfully copied'"]
+CMD ["sh", "-c", "rm -rf /app/dist_out/* && cp -rf /app/dist/. /app/dist_out/ && echo 'Client build successfully copied'"]

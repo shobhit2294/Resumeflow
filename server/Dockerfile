@@ -1,4 +1,4 @@
-# ── Production Dockerfile for ResumeFlow Server ─────────────────
+# ── Production Dockerfile for CareerPilot Server ─────────────────
 FROM node:20-alpine AS base
 
 WORKDIR /app

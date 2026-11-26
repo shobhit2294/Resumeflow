@@ -53,7 +53,7 @@ export default function PipelinePage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `resumeflow_pipeline_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `careerpilot_pipeline_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -70,7 +70,7 @@ export default function PipelinePage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `resumeflow_backup_${new Date().toISOString().split('T')[0]}.json`);
+    link.setAttribute('download', `careerpilot_backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

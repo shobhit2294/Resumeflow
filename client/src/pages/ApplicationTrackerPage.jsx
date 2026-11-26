@@ -199,7 +199,7 @@ export default function ApplicationTrackerPage() {
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
               <Briefcase size={28} className="text-gray-300 mb-2" />
               <p className="text-sm font-medium text-gray-600">No applications yet</p>
-              <p className="text-xs text-gray-400 mt-1">Add jobs from the pipeline or Find Jobs page</p>
+              <p className="text-xs text-gray-400 mt-1">Add jobs from the pipeline or Job Portal</p>
             </div>
           )}
 

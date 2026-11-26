@@ -45,10 +45,6 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - GROQ_API_KEY=${GROQ_API_KEY}
       - REDIS_URL=redis://redis:6379
-      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
       - CLIENT_URL=${CLIENT_URL:-http://localhost}
     depends_on:
       redis:

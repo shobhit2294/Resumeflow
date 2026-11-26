@@ -63,12 +63,13 @@ export default function JobPortalPage() {
   });
 
   const appliedJobIds = new Set((myApps?.applications || []).map(a => String(a.jobId)));
+  const applicationsByJobId = new Map((myApps?.applications || []).map(a => [String(a.jobId), a]));
 
   const jobs = data?.jobs || [];
 
   // ── Apply mutation ─────────────────────────────────────────
   const applyMutation = useMutation({
-    mutationFn: (jobId) => api.post(`/portal/jobs/${jobId}/apply`),
+    mutationFn: ({ jobId, payload }) => api.post(`/portal/jobs/${jobId}/apply`, payload),
     onSuccess: (_, jobId) => {
       qc.invalidateQueries(['my-applications']);
       toast.success('Application submitted!');
@@ -202,8 +203,8 @@ export default function JobPortalPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              {activeTab === 'details'   && <JobDetails   job={selected} isApplied={appliedJobIds.has(String(selected._id))} onApply={() => applyMutation.mutate(selected._id)} applyLoading={applyMutation.isPending} />}
-              {activeTab === 'apply'     && <ApplyTab     job={selected} isApplied={appliedJobIds.has(String(selected._id))} onApply={() => applyMutation.mutate(selected._id)} />}
+              {activeTab === 'details'   && <JobDetails   job={selected} isApplied={appliedJobIds.has(String(selected._id))} onApply={() => setActiveTab('apply')} applyLoading={applyMutation.isPending} />}
+              {activeTab === 'apply'     && <ApplyTab     job={selected} application={applicationsByJobId.get(String(selected._id))} isApplied={appliedJobIds.has(String(selected._id))} onApply={(payload) => applyMutation.mutate({ jobId: selected._id, payload })} />}
               {activeTab === 'interview' && <MockInterviewTab job={selected} />}
               {activeTab === 'coding'    && <CodingRoundTab  job={selected} />}
             </div>
@@ -289,9 +290,12 @@ function JobDetails({ job, isApplied, onApply, applyLoading }) {
 // ════════════════════════════════════════════════════════════
 // TAB: Apply + Resume Score
 // ════════════════════════════════════════════════════════════
-function ApplyTab({ job, isApplied, onApply }) {
+function ApplyTab({ job, application, isApplied, onApply }) {
   const [analysis, setAnalysis] = useState(null);
   const [scoring, setScoring]   = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const scoreResume = async () => {
     setScoring(true);
@@ -303,19 +307,72 @@ function ApplyTab({ job, isApplied, onApply }) {
     } finally { setScoring(false); }
   };
 
+  const updateStatus = async (status) => {
+    setUpdatingStatus(true);
+    try {
+      await api.patch(`/portal/jobs/${job._id}/application-status`, { status });
+      queryClient.invalidateQueries(['my-applications']);
+      toast.success('Application stage updated');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update stage');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   return (
     <div className="p-5 space-y-4 max-w-2xl">
       {!isApplied ? (
         <div className="card p-5 text-center space-y-3">
           <BookmarkPlus size={32} className="text-primary-400 mx-auto"/>
-          <p className="font-semibold text-gray-900">Ready to apply?</p>
-          <p className="text-sm text-gray-500">Apply to this position and unlock resume scoring, mock interview, and coding round.</p>
-          <button onClick={onApply} className="btn-primary w-full justify-center">Apply now</button>
+          <p className="font-semibold text-gray-900">Compare before you apply</p>
+          <p className="text-sm text-gray-500">See which JD skills your resume covers, then choose whether to improve your resume or apply now.</p>
+          {!analysis ? (
+            <button onClick={scoreResume} disabled={scoring} className="btn-primary w-full justify-center">
+              {scoring ? 'Comparing resume...' : 'Compare resume with JD'}
+            </button>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                onClick={() => navigate('/resume', { state: {
+                  jobId: job._id,
+                  company: job.company,
+                  role: job.title,
+                  jobDescription: `${job.description || ''}\n${job.requirements || ''}`.trim(),
+                  missingSkills: analysis.missingSkills || [],
+                } })}
+                className="btn-secondary justify-center text-xs"
+              >
+                Improve resume first
+              </button>
+              <button onClick={() => onApply({ resumeScore: analysis.overallMatch, resumeFeedback: analysis })} className="btn-primary justify-center text-xs">
+                Apply without changes
+              </button>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="flex items-center gap-2 p-3 bg-primary-50 border border-primary-100 rounded-xl">
-          <CheckCircle2 size={16} className="text-primary-600"/>
-          <p className="text-sm font-medium text-primary-800">Application submitted!</p>
+        <div className="p-4 bg-primary-50 border border-primary-100 rounded-xl space-y-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-primary-600"/>
+            <p className="text-sm font-medium text-primary-800">Application submitted</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-primary-800 mb-1">Current stage</label>
+            <select
+              className="input text-xs bg-white"
+              value={application?.status || 'applied'}
+              disabled={updatingStatus}
+              onChange={(event) => updateStatus(event.target.value)}
+            >
+              {['applied', 'screening', 'interview', 'offer', 'rejected'].map((status) => (
+                <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+          {application?.resumeScore != null && (
+            <p className="text-xs text-primary-700">Resume match saved at <strong>{application.resumeScore}%</strong>.</p>
+          )}
         </div>
       )}
 
