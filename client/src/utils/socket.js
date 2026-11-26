@@ -1,55 +1,40 @@
-// In Docker/production: Nginx proxies /socket.io → backend, so use same origin.
-// In local dev: Vite proxy handles /api but not /socket.io by default,
-// so we connect directly to the backend.
+import { io } from 'socket.io-client';
+
+// In production, Vercel routes /socket.io to the backend service on the
+// same domain. In local development, connect to the Express server directly.
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:5000');
+  (import.meta.env.PROD ? window.location.origin : 'http://localhost:5000');
 
 let socket = null;
 
 export async function connectSocket(token) {
   if (socket?.connected) return socket;
 
-  // Disconnect any stale socket first
   socket?.disconnect();
+  socket = io(SOCKET_URL, {
+    path: '/socket.io',
+    auth: { token },
+    transports: ['websocket', 'polling'],
+    reconnectionAttempts: 5,
+    reconnectionDelay: 2000,
+  });
 
-  try {
-    const pkg = 'socket.io-client';
-    const { io } = await import(/* @vite-ignore */ pkg);
-    socket = io(SOCKET_URL, {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-    });
+  socket.on('connect', () => {
+    console.log('Socket connected:', socket.id);
+  });
 
-    socket.on('connect', () => {
-      console.log('🔌 Socket connected:', socket.id);
-    });
+  socket.on('disconnect', (reason) => {
+    console.log('Socket disconnected:', reason);
+  });
 
-    socket.on('disconnect', (reason) => {
-      console.log('🔌 Socket disconnected:', reason);
-    });
+  socket.on('connect_error', (error) => {
+    if (import.meta.env.DEV) {
+      console.warn('Socket connection error:', error.message);
+    }
+  });
 
-    socket.on('connect_error', (err) => {
-      if (import.meta.env.DEV) {
-        console.warn('Socket connect error:', err.message);
-      }
-    });
-
-    return socket;
-  } catch {
-    // Graceful fallback if socket.io-client is optional or unavailable
-    socket = {
-      connected: false,
-      id: null,
-      on: () => {},
-      off: () => {},
-      emit: () => {},
-      disconnect: () => { socket = null; },
-    };
-    return socket;
-  }
+  return socket;
 }
 
 export function getSocket() {
@@ -60,4 +45,3 @@ export function disconnectSocket() {
   socket?.disconnect();
   socket = null;
 }
-
